@@ -60,14 +60,14 @@ aidl_interface {
         },
 
     ],
-    frozen: true,
+    frozen: false,
 
 }
 
 aidl_interface_defaults {
     name: "android.system.keystore2-latest-defaults",
     imports: [
-        "android.system.keystore2-V5",
+        "android.system.keystore2-V6",
     ],
 }
 
@@ -77,21 +77,21 @@ aidl_interface_defaults {
 java_defaults {
     name: "keystore2_use_latest_aidl_java_static",
     static_libs: [
-        "android.system.keystore2-V5-java-source",
+        "android.system.keystore2-V6-java-source",
     ],
 }
 
 java_defaults {
     name: "keystore2_use_latest_aidl_java_shared",
     libs: [
-        "android.system.keystore2-V5-java-source",
+        "android.system.keystore2-V6-java-source",
     ],
 }
 
 java_defaults {
     name: "keystore2_use_latest_aidl_java",
     libs: [
-        "android.system.keystore2-V5-java",
+        "android.system.keystore2-V6-java",
     ],
 }
 
@@ -101,28 +101,28 @@ java_defaults {
 cc_defaults {
     name: "keystore2_use_latest_aidl_ndk_static",
     static_libs: [
-        "android.system.keystore2-V5-ndk",
+        "android.system.keystore2-V6-ndk",
     ],
 }
 
 cc_defaults {
     name: "keystore2_use_latest_aidl_ndk_shared",
     shared_libs: [
-        "android.system.keystore2-V5-ndk",
+        "android.system.keystore2-V6-ndk",
     ],
 }
 
 cc_defaults {
     name: "keystore2_use_latest_aidl_cpp_shared",
     shared_libs: [
-        "android.system.keystore2-V5-cpp",
+        "android.system.keystore2-V6-cpp",
     ],
 }
 
 cc_defaults {
     name: "keystore2_use_latest_aidl_cpp_static",
     static_libs: [
-        "android.system.keystore2-V5-cpp",
+        "android.system.keystore2-V6-cpp",
     ],
 }
 
@@ -132,6 +132,6 @@ cc_defaults {
 rust_defaults {
     name: "keystore2_use_latest_aidl_rust",
     rustlibs: [
-        "android.system.keystore2-V5-rust",
+        "android.system.keystore2-V6-rust",
     ],
 }
