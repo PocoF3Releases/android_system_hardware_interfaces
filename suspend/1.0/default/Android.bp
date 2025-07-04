@@ -56,10 +56,17 @@ cc_defaults {
         "system_suspend_defaults",
         "system_suspend_stats_defaults",
     ],
+    header_libs: [
+        "bpf_headers",
+        "bpf_prog_headers",
+    ],
     shared_libs: [
         "android.system.suspend-V1-ndk",
+        "server_configurable_flags",
+        "libbpf_minimal",
     ],
     static_libs: [
+        "android.bpfprogs.flags-aconfig-cpp",
         "android.system.suspend.control-V1-cpp",
         "android.system.suspend.control.internal-cpp",
         "android.system.suspend@1.0",
@@ -100,6 +107,12 @@ cc_test {
     defaults: [
         "system_suspend_defaults",
         "system_suspend_stats_defaults",
+    ],
+    header_libs: [
+        "bpf_prog_headers",
+    ],
+    shared_libs: [
+        "libbpf_minimal",
     ],
     static_libs: [
         "android.system.suspend-V1-ndk",

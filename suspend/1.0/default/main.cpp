@@ -18,9 +18,11 @@
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/hidl/manager/1.2/IServiceManager.h>
+#include <android_bpfprogs_flags.h>
 #include <binder/IPCThreadState.h>
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
+#include <bpf/WaitForProgsLoaded.h>
 #include <cutils/native_handle.h>
 #include <fcntl.h>
 #include <hidl/HidlTransportSupport.h>
@@ -145,6 +147,15 @@ int main() {
         String16("suspend_control_internal"), suspendControlInternal);
     if (controlStatus != android::OK) {
         LOG(FATAL) << "Unable to register suspend_control_internal service: " << controlStatus;
+    }
+
+    if (android::bpfprogs::flags::kernel_wakelock_duration()) {
+        std::thread([&] {
+            android::bpf::waitForProgsLoaded();
+            suspendControlInternal->initializeKernelWakelockDuration();
+        }).detach();
+    } else {
+        LOG(INFO) << "KernelWakelockDuration flag is disabled";
     }
 
     sp<SystemSuspend> suspend = new SystemSuspend(

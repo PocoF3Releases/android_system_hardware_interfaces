@@ -17,7 +17,9 @@
 #ifndef ANDROID_SYSTEM_SYSTEM_SUSPEND_CONTROL_SERVICE_H
 #define ANDROID_SYSTEM_SYSTEM_SUSPEND_CONTROL_SERVICE_H
 
+#include <android-base/unique_fd.h>
 #include <android/system/suspend/BnSuspendControlService.h>
+#include <android/system/suspend/internal/AggregatedKernelWakelockInfo.h>
 #include <android/system/suspend/internal/BnSuspendControlServiceInternal.h>
 #include <android/system/suspend/internal/SuspendInfo.h>
 #include <android/system/suspend/internal/WakeLockInfo.h>
@@ -26,6 +28,7 @@
 using ::android::system::suspend::BnSuspendControlService;
 using ::android::system::suspend::ISuspendCallback;
 using ::android::system::suspend::IWakelockCallback;
+using ::android::system::suspend::internal::AggregatedKernelWakelockInfo;
 using ::android::system::suspend::internal::BnSuspendControlServiceInternal;
 using ::android::system::suspend::internal::SuspendInfo;
 using ::android::system::suspend::internal::WakeLockInfo;
@@ -78,11 +81,16 @@ class SuspendControlServiceInternal : public BnSuspendControlServiceInternal {
     binder::Status getWakeLockStatsFiltered(int wakeLockInfoFieldBitMask,
                                             std::vector<WakeLockInfo>* _aidl_return) override;
     binder::Status getWakeupStats(std::vector<WakeupInfo>* _aidl_return) override;
-
+    binder::Status getKernelWakelockDurationStats(
+        AggregatedKernelWakelockInfo* _aidl_return) override;
+    void initializeKernelWakelockDuration();
     void setSuspendService(const wp<SystemSuspend>& suspend);
     status_t dump(int fd, const Vector<String16>& args) override;
 
    private:
+    std::optional<uint64_t> getKernelWakelockDurationStatsInternal();
+    android::base::unique_fd kernelWakelockDurationBpfMap;
+
     wp<SystemSuspend> mSuspend;
 };
 
