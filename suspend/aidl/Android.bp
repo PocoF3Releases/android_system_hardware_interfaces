@@ -62,7 +62,6 @@ aidl_interface {
                 "//apex_available:platform",
                 "com.android.uwb",
                 "com.android.bt",
-                "com.android.nfcservices",
             ],
             min_sdk_version: "30",
         },

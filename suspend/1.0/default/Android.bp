@@ -224,10 +224,5 @@ aconfig_declarations {
 cc_aconfig_library {
     name: "suspend_service_flags_c_lib",
     aconfig_declarations: "suspend_service_flags",
-    min_sdk_version: "35",
     vendor_available: true,
-    apex_available: [
-        "//apex_available:platform",
-        "com.android.nfcservices",
-    ],
 }
