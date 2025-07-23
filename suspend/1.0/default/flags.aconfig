@@ -7,3 +7,10 @@ flag {
   description: "Controls using new codepath to speed up polling of /sys/class/wakeup for kernel wakelocks."
   bug: "364368163"
 }
+
+flag {
+  name: "fast_kernel_wakelock_reporting_v2"
+  namespace: "wear_frameworks"
+  description: "Controls using new codepath to speed up polling of /sys/class/wakeup for kernel wakelocks."
+  bug: "424390562"
+}

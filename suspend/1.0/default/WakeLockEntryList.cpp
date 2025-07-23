@@ -30,6 +30,7 @@ using android::base::ReadFdToString;
 using android::base::Readlink;
 using android::base::StringPrintf;
 using suspend_service::flags::fast_kernel_wakelock_reporting;
+using suspend_service::flags::fast_kernel_wakelock_reporting_v2;
 
 using ISCSI = ::android::system::suspend::internal::ISuspendControlServiceInternal;
 
@@ -382,10 +383,43 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(ScratchSpace* ss, int wakeLock
 
         ss->statName = kwlId + "/" + field.filename;
         int statFd = -1;
+        std::optional<FdWithMutex::LockedFd> acquiredFd;
 
-        {
+        // Check if we have a valid cached file descriptor.
+        if (fast_kernel_wakelock_reporting_v2()) {
             std::lock_guard<std::mutex> lock(mLock);
-            // Check if we have a valid cached file descriptor.
+
+            auto it = mFdWithMutexCache.find(ss->statName);
+            if (it != mFdWithMutexCache.end()) {
+                acquiredFd = it->second.acquire();
+            }
+            if (acquiredFd && acquiredFd->isValid()) {
+                auto result = lseek(acquiredFd->get(), 0, SEEK_SET);
+                if (result < 0) {
+                    PLOG(ERROR) << "Could not seek to start of FD for " << ss->statName;
+                    acquiredFd.reset();
+                    PLOG(ERROR) << "Closed the FD.";
+                } else {
+                    statFd = acquiredFd->get();
+                }
+            }
+            if (statFd == -1) {
+                unique_fd tmpFd(TEMP_FAILURE_RETRY(
+                    openat(mKernelWakelockStatsFd, ss->statName.c_str(), O_CLOEXEC | O_RDONLY)));
+                if (tmpFd < 0) {
+                    PLOG(ERROR) << "Error opening " << ss->statName << " for " << kwlId;
+                    continue;
+                }
+                statFd = tmpFd;
+                if (acquiredFd) {
+                    acquiredFd->set(std::move(tmpFd));
+                } else {
+                    auto result = mFdWithMutexCache.emplace(ss->statName, std::move(tmpFd));
+                    acquiredFd = result.first->second.acquire();
+                }
+            }  // acquiredFd is guaranteed to be set here
+        } else {
+            std::lock_guard<std::mutex> lock(mLock);
             auto it = mFdCache.find(ss->statName);
             if (it != mFdCache.end() && it->second >= 0) {
                 auto result = lseek(it->second, 0, SEEK_SET);
@@ -418,8 +452,12 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(ScratchSpace* ss, int wakeLock
         if (n < 0) {
             PLOG(ERROR) << "Error reading " << ss->statName;
             {
-                std::lock_guard<std::mutex> lock(mLock);
-                mFdCache.erase(ss->statName);
+                if (fast_kernel_wakelock_reporting_v2()) {
+                    acquiredFd.reset();
+                } else {
+                    std::lock_guard<std::mutex> lock(mLock);
+                    mFdCache.erase(ss->statName);
+                }
                 PLOG(ERROR) << "Closed the FD.";
             }
             continue;
@@ -487,9 +525,10 @@ void WakeLockEntryList::getKernelWakelockStats(int wakeLockInfoFieldBitMask,
             if ((kwlId == ".") || (kwlId == "..")) {
                 continue;
             }
-            WakeLockInfo entry = fast_kernel_wakelock_reporting()
-                                     ? createKernelEntry(&ss, wakeLockInfoFieldBitMask, kwlId)
-                                     : createKernelEntry(kwlId);
+            WakeLockInfo entry =
+                fast_kernel_wakelock_reporting() || fast_kernel_wakelock_reporting_v2()
+                    ? createKernelEntry(&ss, wakeLockInfoFieldBitMask, kwlId)
+                    : createKernelEntry(kwlId);
 
             aidl_return->emplace_back(std::move(entry));
         }

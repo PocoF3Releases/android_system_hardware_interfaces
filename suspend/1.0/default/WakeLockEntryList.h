@@ -87,7 +87,60 @@ class WakeLockEntryList {
 
     size_t mCapacity;
     unique_fd mKernelWakelockStatsFd;
+
+    class FdWithMutex {
+       public:
+        FdWithMutex(unique_fd fd) : mFd(std::move(fd)) {}
+
+        // RAII helper class that guarantees that all FD access happens under a lock.
+        //
+        // mFdWithMutex remains valid throughout because
+        // (a) elements are never erased elements from mFdWithMutexCache and
+        // (b) if mFdWithMutexCache gets rebucketed, that does not invalidate
+        //     references (and pointers) to values.
+        class LockedFd {
+           public:
+            int get() const { return mFdWithMutex->mFd; }
+            bool isValid() const { return mFdWithMutex->mFd != -1; }
+
+            void clear() { mFdWithMutex->mFd.reset(); }
+            void set(unique_fd&& newFd) { mFdWithMutex->mFd = std::move(newFd); }
+
+            // Need move ctor and assignment for std::optional<LockedFd>.
+            LockedFd(LockedFd&& other) {
+                mFdWithMutex = other.mFdWithMutex;
+                other.mFdWithMutex = nullptr;
+
+                mLocked = std::move(other.mLocked);
+            }
+
+            LockedFd& operator=(LockedFd&& other) {
+                mFdWithMutex = other.mFdWithMutex;
+                other.mFdWithMutex = nullptr;
+
+                mLocked = std::move(other.mLocked);
+                return *this;
+            }
+
+           private:
+            FdWithMutex* mFdWithMutex;
+            std::unique_lock<std::mutex> mLocked;
+
+            LockedFd(FdWithMutex* fdWithMutex)
+                : mFdWithMutex(fdWithMutex), mLocked(fdWithMutex->mLock) {};
+
+            friend class FdWithMutex;
+        };
+
+        LockedFd acquire() { return LockedFd(this); }
+
+       private:
+        std::mutex mLock;
+        unique_fd mFd;
+    };
+
     mutable std::unordered_map<std::string, unique_fd> mFdCache GUARDED_BY(mLock);
+    mutable std::unordered_map<std::string, FdWithMutex> mFdWithMutexCache GUARDED_BY(mLock);
 
     // std::list and std::unordered map are used to support both inserting a stat
     // and eviction of the LRU stat in O(1) time. The LRU stat is maintained at

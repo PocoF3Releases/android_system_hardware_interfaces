@@ -1271,15 +1271,22 @@ class SystemSuspendSameThreadTest : public ::testing::Test {
 class mock_flag_provider_interface : public suspend_service::flags::flag_provider_interface {
    public:
     MOCK_METHOD(bool, fast_kernel_wakelock_reporting, (), (override));
+    MOCK_METHOD(bool, fast_kernel_wakelock_reporting_v2, (), (override));
 };
 
-class ParameterizedSystemSuspendSameThreadTest : public SystemSuspendSameThreadTest,
-                                                 public ::testing::WithParamInterface<bool> {
+enum class KernelWakeLockFdType { Uncached, CachedV1, CachedV2 };
+
+class ParameterizedSystemSuspendSameThreadTest
+    : public SystemSuspendSameThreadTest,
+      public ::testing::WithParamInterface<KernelWakeLockFdType> {
    protected:
     void SetUp() override {
         auto mock_flag_provider = std::make_unique<mock_flag_provider_interface>();
+
         ON_CALL(*mock_flag_provider, fast_kernel_wakelock_reporting())
-            .WillByDefault(::testing::Return(GetParam()));
+            .WillByDefault(::testing::Return(GetParam() == KernelWakeLockFdType::CachedV1));
+        ON_CALL(*mock_flag_provider, fast_kernel_wakelock_reporting_v2())
+            .WillByDefault(::testing::Return(GetParam() == KernelWakeLockFdType::CachedV2));
         suspend_service::flags::provider_ = std::move(mock_flag_provider);
 
         SystemSuspendSameThreadTest::SetUp();
@@ -1333,7 +1340,10 @@ TEST_F(SystemSuspendSameThreadTest, GetNativeWakeLockStats) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ParameterizedSystemSuspendSameThreadTest,
-                         ParameterizedSystemSuspendSameThreadTest, ::testing::Bool());
+                         ParameterizedSystemSuspendSameThreadTest,
+                         ::testing::ValuesIn({KernelWakeLockFdType::Uncached,
+                                              KernelWakeLockFdType::CachedV1,
+                                              KernelWakeLockFdType::CachedV2}));
 
 // Test that getWakeLockStats has correct information about Kernel WakeLocks.
 TEST_P(ParameterizedSystemSuspendSameThreadTest, GetKernelWakeLockStats) {
