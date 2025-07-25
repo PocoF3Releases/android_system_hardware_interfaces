@@ -69,6 +69,7 @@ static const char kSleepState[] = "mem";
 static constexpr char kSysPowerWakeLock[] = "/sys/power/wake_lock";
 static constexpr char kSysPowerWakeUnlock[] = "/sys/power/wake_unlock";
 static constexpr char kUnknownWakeup[] = "unknown";
+static constexpr char kUserspaceAbort[] = "userspace-abort";
 // This is used to disable autosuspend when zygote is restarted
 // it allows the system to make progress before autosuspend is kicked
 // NOTE: If the name of this wakelock is changed then also update the name
@@ -167,16 +168,19 @@ SystemSuspend::SystemSuspend(unique_fd wakeupCountFd, unique_fd stateFd, unique_
       mWakeupReasonsFd(std::move(wakeupReasonsFd)) {
     mControlServiceInternal->setSuspendService(this);
 
-    if (!mUseSuspendCounter) {
-        mWakeLockFd.reset(TEMP_FAILURE_RETRY(open(kSysPowerWakeLock, O_CLOEXEC | O_RDWR)));
-        if (mWakeLockFd < 0) {
-            PLOG(ERROR) << "error opening " << kSysPowerWakeLock;
-        }
+    mWakeLockFd.reset(TEMP_FAILURE_RETRY(open(kSysPowerWakeLock, O_CLOEXEC | O_RDWR)));
+    if (mWakeLockFd < 0) {
+        PLOG(ERROR) << "error opening " << kSysPowerWakeLock;
     }
 
     mWakeUnlockFd.reset(TEMP_FAILURE_RETRY(open(kSysPowerWakeUnlock, O_CLOEXEC | O_RDWR)));
     if (mWakeUnlockFd < 0) {
         PLOG(ERROR) << "error opening " << kSysPowerWakeUnlock;
+    }
+    // Explicitly unlock userspace abort wakelock when the service starts,
+    // in case the service crashed and left it locked.
+    if (mWakeUnlockFd > 0) {
+        WriteStringToFd(kUserspaceAbort, mWakeUnlockFd);
     }
 }
 
@@ -273,6 +277,8 @@ bool SystemSuspend::forceSuspend() {
 }
 
 void SystemSuspend::incSuspendCounter(const string& name) {
+    // Aborts suspend. Has to be done before grabbing the mAutosuspendLock.
+    WriteStringToFd(kUserspaceAbort, mWakeLockFd);
     auto l = std::lock_guard(mAutosuspendLock);
     if (mUseSuspendCounter) {
         mSuspendCounter++;
@@ -281,6 +287,11 @@ void SystemSuspend::incSuspendCounter(const string& name) {
             PLOG(ERROR) << "error writing " << name << " to " << kSysPowerWakeLock;
         }
     }
+    // We don't need to hold this lock until suspend is aborted (the kernel will remember).
+    // But it has to be released after we've grabbed mAutosuspendLock to prevent the
+    // suspend service from racing and triggering a suspend right before this thread grabs
+    // mAutosuspendLock.
+    WriteStringToFd(kUserspaceAbort, mWakeUnlockFd);
 }
 
 void SystemSuspend::decSuspendCounter(const string& name) {
