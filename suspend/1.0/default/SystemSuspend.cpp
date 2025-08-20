@@ -453,7 +453,8 @@ void SystemSuspend::logKernelWakeLockStats() {
 /**
  * Updates sleep time depending on the result of suspend attempt.
  * Time (in milliseconds) between suspend attempts is described the formula
- * t[n] = { B, 0 < n <= N
+ * t[n] = { max(B, P), n = 0
+ *        { B, 0 < n <= N
  *        { min(B * (S**(n - N)), M), n > N
  * where:
  *   n is the number of consecutive bad suspend attempts,
@@ -461,6 +462,7 @@ void SystemSuspend::logKernelWakeLockStats() {
  *   N = kSuspendBackoffThreshold,
  *   S = kSleepTimeScaleFactor,
  *   M = kMaxSleepTime
+ *   P = kPostResumeMinStayAwakeTime
  *
  * kFailedSuspendBackoffEnabled determines whether a failed suspend is counted as a bad suspend
  *
@@ -501,6 +503,9 @@ void SystemSuspend::updateSleepTime(bool success, const struct SuspendTime& susp
         ATRACE_INSTANT_FOR_TRACK(ATRACE_TRACK_BACKOFF, "good");
         mNumConsecutiveBadSuspends = 0;
         mSleepTime = kSleepTimeConfig.baseSleepTime;
+        if (kSleepTimeConfig.postResumeMinStayAwakeTime > 0ns) {
+            mSleepTime = std::max(mSleepTime, kSleepTimeConfig.postResumeMinStayAwakeTime);
+        }
         return;
     }
 

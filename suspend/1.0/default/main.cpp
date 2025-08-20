@@ -68,6 +68,7 @@ static constexpr uint32_t kDefaultBackoffThresholdCount = 0;
 static constexpr uint32_t kDefaultShortSuspendThresholdMillis = 0;
 static constexpr bool kDefaultFailedSuspendBackoffEnabled = true;
 static constexpr bool kDefaultShortSuspendBackoffEnabled = false;
+static constexpr uint32_t kDefaultPostResumeMinStayAwakeTimeMillis = 0;
 
 int main() {
     unique_fd wakeupCountFd{TEMP_FAILURE_RETRY(open(kSysPowerWakeupCount, O_CLOEXEC | O_RDWR))};
@@ -124,6 +125,9 @@ int main() {
             kDefaultFailedSuspendBackoffEnabled),
         .shortSuspendBackoffEnabled = SuspendProperties::short_suspend_backoff_enabled().value_or(
             kDefaultShortSuspendBackoffEnabled),
+        .postResumeMinStayAwakeTime = std::chrono::milliseconds(
+            SuspendProperties::post_resume_min_stay_awake_time_millis().value_or(
+                kDefaultPostResumeMinStayAwakeTimeMillis)),
     };
 
     // Create non-HW binder threadpool for SuspendControlService.

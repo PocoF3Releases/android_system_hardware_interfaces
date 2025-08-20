@@ -20,6 +20,11 @@ props {
     prop_name: "suspend.max_sleep_time_millis"
   }
   prop {
+    api_name: "post_resume_min_stay_awake_time_millis"
+    type: UInt
+    prop_name: "suspend.post_resume_min_stay_awake_time_millis"
+  }
+  prop {
     api_name: "short_suspend_backoff_enabled"
     prop_name: "suspend.short_suspend_backoff_enabled"
   }

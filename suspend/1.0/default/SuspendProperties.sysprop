@@ -77,3 +77,12 @@ prop {
     access: Readonly
     prop_name: "suspend.short_suspend_backoff_enabled"
 }
+
+# Time in milliseconds to wait after resume before allowing the system to re-attempt sleep
+prop {
+    api_name: "post_resume_min_stay_awake_time_millis"
+    type: UInt
+    scope: Public
+    access: Readonly
+    prop_name: "suspend.post_resume_min_stay_awake_time_millis"
+}

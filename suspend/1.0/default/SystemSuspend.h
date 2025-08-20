@@ -72,6 +72,7 @@ struct SleepTimeConfig {
     std::chrono::milliseconds shortSuspendThreshold;
     bool failedSuspendBackoffEnabled;
     bool shortSuspendBackoffEnabled;
+    std::chrono::milliseconds postResumeMinStayAwakeTime;
 };
 
 std::string readFd(int fd);
