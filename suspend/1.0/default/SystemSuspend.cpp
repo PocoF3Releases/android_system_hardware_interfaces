@@ -512,6 +512,12 @@ void SystemSuspend::updateSleepTime(bool success, const struct SuspendTime& susp
     const char* backoffDecision = "defer";
 
     // Suspend attempt was bad (failed or short suspend)
+
+    // Reset mSleepTime upon first bad suspend.
+    if (mNumConsecutiveBadSuspends == 0) {
+        mSleepTime = kSleepTimeConfig.baseSleepTime;
+    }
+
     if (mNumConsecutiveBadSuspends >= kSleepTimeConfig.backoffThreshold) {
         if (mNumConsecutiveBadSuspends == kSleepTimeConfig.backoffThreshold) {
             mSuspendInfo.newBackoffCount++;
