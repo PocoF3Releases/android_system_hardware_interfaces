@@ -30,6 +30,7 @@
 #include <android/binder_manager.h>
 #include <android/system/suspend/internal/ISuspendControlServiceInternal.h>
 #include <fcntl.h>
+#include <suspend_service_flags.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -50,6 +51,7 @@ using ::android::base::ReadFdToString;
 using ::android::base::StringPrintf;
 using ::android::base::WriteStringToFd;
 using ::std::string;
+using suspend_service::flags::suspend_backoff_observability;
 
 using ISCSI = ::android::system::suspend::internal::ISuspendControlServiceInternal;
 
@@ -157,6 +159,7 @@ SystemSuspend::SystemSuspend(unique_fd wakeupCountFd, unique_fd stateFd, unique_
       mSuspendTimeFd(std::move(suspendTimeFd)),
       kSleepTimeConfig(sleepTimeConfig),
       mSleepTime(sleepTimeConfig.baseSleepTime),
+      mSleepState(SuspendSleepState::NORMAL),
       mNumConsecutiveBadSuspends(0),
       mControlService(controlService),
       mControlServiceInternal(controlServiceInternal),
@@ -339,9 +342,11 @@ void SystemSuspend::initAutosuspendLocked() {
                 // If we got here by a failed write to /sys/power/wakeup_count; don't sleep
                 // since we didn't attempt to suspend on the last cycle of this loop.
                 if (shouldSleep) {
+                    updateSleepStateStats(true);
                     mAutosuspendCondVar.wait_for(
                         autosuspendLock, mSleepTime,
                         [this]() REQUIRES(mAutosuspendLock) { return !mAutosuspendEnabled; });
+                    updateSleepStateStats(false);
                 }
 
                 if (!mAutosuspendEnabled) continue;
@@ -506,6 +511,7 @@ void SystemSuspend::updateSleepTime(bool success, const struct SuspendTime& susp
         if (kSleepTimeConfig.postResumeMinStayAwakeTime > 0ns) {
             mSleepTime = std::max(mSleepTime, kSleepTimeConfig.postResumeMinStayAwakeTime);
         }
+        mSleepState = SuspendSleepState::NORMAL;
         return;
     }
 
@@ -530,6 +536,9 @@ void SystemSuspend::updateSleepTime(bool success, const struct SuspendTime& susp
         mSleepTime = std::min(std::chrono::round<std::chrono::milliseconds>(
                                   mSleepTime * kSleepTimeConfig.sleepTimeScaleFactor),
                               kSleepTimeConfig.maxSleepTime);
+
+        // mSleepState intentionally follows changes in sleep behavior, not single suspend results
+        mSleepState = shortSuspend ? SuspendSleepState::SHORT : SuspendSleepState::FAILED;
     }
 
     mNumConsecutiveBadSuspends++;
@@ -538,6 +547,40 @@ void SystemSuspend::updateSleepTime(bool success, const struct SuspendTime& susp
         base::StringPrintf("bad %s %s %d %lld", backoffDecision, shortSuspend ? "short" : "failed",
                            mNumConsecutiveBadSuspends, mSleepTime.count());
     ATRACE_INSTANT_FOR_TRACK(ATRACE_TRACK_BACKOFF, msg.c_str());
+}
+
+void SystemSuspend::updateSleepStateStats(bool isAcquired) {
+    if (!suspend_backoff_observability()) {
+        return;
+    }
+
+    pid_t pid = getpid();
+    std::string currentWakelockName = getSleepStateWakelockName(mSleepState);
+    std::string totalWakelockName = getSleepStateWakelockName(SuspendSleepState::TOTAL);
+
+    if (isAcquired) {
+        updateWakeLockStatOnAcquire(currentWakelockName, pid);
+        updateWakeLockStatOnAcquire(totalWakelockName, pid);
+    } else {
+        updateWakeLockStatOnRelease(currentWakelockName, pid);
+        updateWakeLockStatOnRelease(totalWakelockName, pid);
+    }
+}
+
+const char* SystemSuspend::getSleepStateWakelockName(SuspendSleepState state) {
+    switch (state) {
+        case SuspendSleepState::NORMAL:
+            return "SuspendControl.NormalSuspendDelay";
+        case SuspendSleepState::SHORT:
+            return "SuspendControl.ShortSuspendDelay";
+        case SuspendSleepState::FAILED:
+            return "SuspendControl.FailedSuspendDelay";
+        case SuspendSleepState::TOTAL:
+            return "SuspendControl.TotalSuspendDelay";
+        default:
+            LOG(ERROR) << "Unknown SuspendSleepState: " << static_cast<int>(state);
+            return "SuspendControl.UnknownSuspendDelay";
+    }
 }
 
 void SystemSuspend::updateWakeLockStatOnAcquire(const std::string& name, int pid) {
