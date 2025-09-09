@@ -100,6 +100,10 @@ enum AudioDeviceType {
      */
     IN_DOCK = 14,
     /**
+     * Hearing aid.
+     */
+    IN_HEARING_AID = 15,
+    /**
      * An alias for "bus" devices. Must have an empty connection type.
      *
      * Note: Since bus devices are non-removable, they need to be represented by

@@ -50,6 +50,7 @@ enum AudioDeviceType {
   IN_TELEPHONY_RX = 12,
   IN_TV_TUNER = 13,
   IN_DOCK = 14,
+  IN_HEARING_AID = 15,
   IN_BUS = IN_DEVICE /* 4 */,
   OUT_DEFAULT = 129,
   OUT_ACCESSORY = 130,
