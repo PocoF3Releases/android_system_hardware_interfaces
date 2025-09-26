@@ -19,7 +19,7 @@ package android.media.audio.common;
 /**
  * Stores a bitmask of input or output flags.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

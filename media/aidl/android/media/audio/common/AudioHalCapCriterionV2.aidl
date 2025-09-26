@@ -26,7 +26,7 @@ import android.media.audio.common.AudioPolicyForceUse;
  * This is to be used exclusively for the Configurable Audio Policy (CAP) engine
  * configuration.
  *
- * {@hide}
+ * @hide
  */
 @VintfStability
 union AudioHalCapCriterionV2 {

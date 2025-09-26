@@ -19,7 +19,7 @@ package android.media.audio.common;
  * "Force Use" specifies high-level routing policies which are used
  * in order to override the usual routing behavior.
  *
- * {@hide}
+ * @hide
  */
 @SuppressWarnings(value={"redundant-name"})
 @VintfStability

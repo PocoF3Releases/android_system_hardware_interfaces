@@ -27,7 +27,7 @@ import android.media.audio.common.Int;
  * Audio port configuration structure specifies a particular configuration
  * of an audio port.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

@@ -23,7 +23,7 @@ import android.media.audio.common.AudioDeviceDescription;
  * Represents a concrete audio device by bundling together the device type and
  * the device address.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

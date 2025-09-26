@@ -23,7 +23,7 @@ import android.media.audio.common.AudioStreamType;
  * Provides additional information depending on the type of the audio port
  * when it is used in the mix role.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

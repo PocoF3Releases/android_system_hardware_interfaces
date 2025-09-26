@@ -19,7 +19,7 @@ package android.media.audio.common;
 /**
  * Audio Volume Group Change Event.
  *
- * {@hide}
+ * @hide
  */
 @SuppressWarnings(value={"redundant-name"}) // for VOLUME_FLAG_*
 @JavaDerive(equals=true, toString=true)

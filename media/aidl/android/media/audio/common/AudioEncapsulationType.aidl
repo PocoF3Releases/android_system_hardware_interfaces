@@ -21,7 +21,7 @@ package android.media.audio.common;
  * with a particular encapsulation type or not. This enum corresponds to
  * AudioProfile.AUDIO_ENCAPSULATION_* constants in the SDK.
  *
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability

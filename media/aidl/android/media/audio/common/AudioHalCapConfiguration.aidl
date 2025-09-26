@@ -59,7 +59,7 @@ import android.media.audio.common.AudioHalCapRule;
  *                           │ forcConfigForUse               │
  *                           └────────────────────────────────┘
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

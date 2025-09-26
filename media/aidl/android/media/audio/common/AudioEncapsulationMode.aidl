@@ -18,7 +18,7 @@ package android.media.audio.common;
 /**
  * Encapsulation mode used for sending audio compressed data.
  *
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="byte")

@@ -21,7 +21,7 @@ import android.os.ParcelFileDescriptor;
 /**
  * Base sound model descriptor. This struct can be extended for various specific types by way of
  * aggregation.
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

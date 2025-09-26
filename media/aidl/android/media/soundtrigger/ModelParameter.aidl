@@ -18,7 +18,7 @@ package android.media.soundtrigger;
 /**
  * Model specific parameters to be used with parameter set and get APIs.
  *
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="int")

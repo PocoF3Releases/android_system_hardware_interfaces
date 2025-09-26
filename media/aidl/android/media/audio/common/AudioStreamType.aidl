@@ -22,7 +22,7 @@ package android.media.audio.common;
  * identification purposes, AudioContentType and AudioUsage must be used,
  * similar to how it's done in the SDK.
  *
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="int")

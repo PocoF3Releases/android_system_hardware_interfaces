@@ -22,7 +22,7 @@ import android.media.audio.common.AudioHalCapConfiguration;
  * AudioHalCapDomain defines the Configurable Audio Policy (CAP) groups of parameters that belong
  * to a given domain and manage the runtime behavior (aka values of the parameter).
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

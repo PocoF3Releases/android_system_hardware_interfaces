@@ -22,7 +22,7 @@ import android.media.audio.common.AudioChannelLayout;
  * This structure represents a gain stage. A gain stage is always attached
  * to an AudioPort.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

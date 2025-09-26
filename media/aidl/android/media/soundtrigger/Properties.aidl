@@ -17,7 +17,7 @@ package android.media.soundtrigger;
 
 /**
  * Capabilities of a sound trigger module.
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

@@ -19,7 +19,7 @@ import android.media.soundtrigger.PhraseRecognitionExtra;
 
 /**
  * Configuration for tuning behavior of an active recognition process.
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

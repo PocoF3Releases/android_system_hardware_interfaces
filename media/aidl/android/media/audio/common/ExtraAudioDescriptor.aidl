@@ -23,7 +23,7 @@ import android.media.audio.common.AudioStandard;
  * The audio descriptor that describes playback/capture capabilities according to
  * a particular standard.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

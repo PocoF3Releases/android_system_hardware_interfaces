@@ -38,7 +38,7 @@ package android.media.audio.common;
  * layout mask, intended for processing voice audio from telecommunication
  * use cases.
  *
- * {@hide}
+ * @hide
  */
 @SuppressWarnings(value={"redundant-name"}) // for *CHANNEL*
 @JavaDerive(equals=true, toString=true)

@@ -17,7 +17,7 @@ package android.media.soundtrigger;
 
 /**
  * A status for indicating the type of a recognition event.
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="int")

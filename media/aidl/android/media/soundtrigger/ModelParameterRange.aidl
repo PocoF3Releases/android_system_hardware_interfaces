@@ -18,7 +18,7 @@ package android.media.soundtrigger;
 /**
  * Value range for a model parameter.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

@@ -21,7 +21,7 @@ import android.media.audio.common.AudioDeviceType;
 /**
  * Describes the kind of an audio device.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

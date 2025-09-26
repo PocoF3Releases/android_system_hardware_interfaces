@@ -30,7 +30,7 @@ package android.media.audio.common;
  * for output and microphones can only be used for input (at least, in the
  * context of the audio framework).
  *
- * {@hide}
+ * @hide
  */
 @SuppressWarnings(value={"redundant-name"}) // for IN/OUT_DEVICE
 @VintfStability

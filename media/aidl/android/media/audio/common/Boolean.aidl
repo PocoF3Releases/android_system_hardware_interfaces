@@ -20,7 +20,7 @@ package android.media.audio.common;
  * This is a simple wrapper around a 'boolean', putting it in a parcelable, so it
  * can be used as an 'inout' parameter, be made '@nullable', etc.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

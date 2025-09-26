@@ -19,7 +19,7 @@ package android.media.audio.common;
  * Major modes for a mobile device. The current mode setting affects audio
  * routing.
  *
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability

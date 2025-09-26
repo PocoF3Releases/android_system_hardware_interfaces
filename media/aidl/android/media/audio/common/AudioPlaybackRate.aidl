@@ -20,7 +20,7 @@ package android.media.audio.common;
  * Parameters determining playback behavior. They are used to speed up or slow
  * down playback and / or change the tonal frequency of the audio content (pitch).
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

@@ -19,7 +19,7 @@ package android.media.audio.common;
 /**
  * Audio playback spatialization settings.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability
@@ -27,7 +27,7 @@ parcelable Spatialization {
     /**
      * The spatialization level supported by the spatializer stage effect implementation.
      * Used by methods of the ISpatializer interface.
-     * {@hide}
+     * @hide
      */
     @Backing(type="byte")
     enum Level {
@@ -45,7 +45,7 @@ parcelable Spatialization {
     /**
      * The spatialization mode supported by the spatializer stage effect implementation.
      * Used by methods of the ISpatializer interface.
-     * {@hide}
+     * @hide
      */
     @Backing(type="byte")
     enum Mode {

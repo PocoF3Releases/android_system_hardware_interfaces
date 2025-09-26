@@ -20,7 +20,7 @@ package android.media.audio.common;
  * This is an empty parcelable which can be used in unions to indicate
  * variants where the actual value of the field is irrelevant.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

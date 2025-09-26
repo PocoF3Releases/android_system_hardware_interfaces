@@ -20,7 +20,7 @@ package android.media.audio.common;
  * source of audio signal, and a recording configuration. This enum corresponds
  * to MediaRecorder.AudioSource.* constants in the SDK.
  *
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability

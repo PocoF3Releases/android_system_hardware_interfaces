@@ -30,7 +30,7 @@ import android.media.audio.common.AudioStreamType;
  *        -the address.
  *    Volume Profile: for volume curve selection (e.g. dtmf follows call curves during call).
  *
- * {@hide}
+ * @hide
  */
 @VintfStability
 union AudioHalCapParameter {

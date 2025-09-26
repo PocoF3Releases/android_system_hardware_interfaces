@@ -22,7 +22,7 @@ import android.media.audio.common.AudioChannelLayout;
  * The gain configuration structure is used to get or set the gain values of a
  * given AudioPort.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

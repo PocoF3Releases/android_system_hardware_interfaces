@@ -20,7 +20,7 @@ package android.media.audio.common;
  * Type of gain control exposed by an audio port. The values are
  * indexes of bits in a bitmask.
  *
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="byte")

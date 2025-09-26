@@ -27,7 +27,7 @@ import android.media.audio.common.ExtraAudioDescriptor;
  * This is a "blueprint" which contains all the possible configurations
  * that are supported by the port.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

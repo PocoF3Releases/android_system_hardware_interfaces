@@ -62,7 +62,7 @@ import android.media.audio.common.AudioHalCapCriterionV2;
  *         },
  *       .criterionRules = { CriterionRule4 }}
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

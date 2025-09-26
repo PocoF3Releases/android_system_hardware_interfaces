@@ -17,7 +17,7 @@ package android.media.soundtrigger;
 
 /**
  * Sound model type.
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="int")

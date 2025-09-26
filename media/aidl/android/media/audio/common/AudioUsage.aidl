@@ -17,7 +17,7 @@
 package android.media.audio.common;
 
 /**
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="int")

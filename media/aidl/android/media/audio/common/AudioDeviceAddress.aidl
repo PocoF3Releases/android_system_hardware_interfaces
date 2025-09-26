@@ -20,7 +20,7 @@ package android.media.audio.common;
  * This structure defines various representations for the audio device
  * address.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

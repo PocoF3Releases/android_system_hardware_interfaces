@@ -27,7 +27,7 @@ import android.media.audio.common.AudioFormatDescription;
  * are queried at run time. Dynamic profiles generally used with detachable
  * devices, e.g. HDMI or USB devices.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

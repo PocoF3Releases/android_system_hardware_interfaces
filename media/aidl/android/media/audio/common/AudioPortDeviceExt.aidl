@@ -23,7 +23,7 @@ import android.media.audio.common.AudioFormatDescription;
 /**
  * Extra parameters which are specified when the audio port is in the device role.
  *
- * {@hide}
+ * @hide
  */
 @SuppressWarnings(value={"redundant-name"}) // for *DEFAULT_DEVICE
 @JavaDerive(equals=true, toString=true)

@@ -21,7 +21,7 @@ import android.media.audio.common.AudioPortMixExtUseCase;
 /**
  * Extra parameters which are specified when the audio port is in the mix role.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

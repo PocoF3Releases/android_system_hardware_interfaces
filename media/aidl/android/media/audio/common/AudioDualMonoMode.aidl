@@ -22,7 +22,7 @@ package android.media.audio.common;
  * ITU T-REC-J.94-201610 A.6.2.3 Component descriptor.
  * This enum corresponds to AudioTrack.DUAL_MONO_MODE_* constants in the SDK.
  *
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability
