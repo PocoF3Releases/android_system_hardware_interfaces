@@ -75,6 +75,13 @@ struct SleepTimeConfig {
     std::chrono::milliseconds postResumeMinStayAwakeTime;
 };
 
+enum class SuspendSleepState {
+    NORMAL,
+    SHORT,
+    FAILED,
+    TOTAL
+};
+
 std::string readFd(int fd);
 
 class SystemSuspend : public RefBase {
@@ -125,6 +132,9 @@ class SystemSuspend : public RefBase {
     std::atomic<bool> mAutosuspendEnabled GUARDED_BY(mAutosuspendLock){false};
     std::atomic<bool> mAutosuspendThreadCreated GUARDED_BY(mAutosuspendLock){false};
 
+    void updateSleepStateStats(bool isAcquired);
+    const char* getSleepStateWakelockName(SuspendSleepState state);
+
     unique_fd mWakeupCountFd;
     unique_fd mStateFd;
 
@@ -137,6 +147,7 @@ class SystemSuspend : public RefBase {
 
     // Amount of thread sleep time between consecutive iterations of the suspend loop
     std::chrono::milliseconds mSleepTime;
+    SuspendSleepState mSleepState;
     int32_t mNumConsecutiveBadSuspends GUARDED_BY(mSuspendInfoLock);
 
     // Updates thread sleep time and suspend stats depending on the result of suspend attempt

@@ -14,3 +14,10 @@ flag {
   description: "Controls using new codepath to speed up polling of /sys/class/wakeup for kernel wakelocks."
   bug: "424390562"
 }
+
+flag {
+  name: "suspend_backoff_observability"
+  namespace: "pixel_power_sw"
+  description: "Adds wakelocks to observe when suspend sleep delays are occurring"
+  bug: "431123280"
+}
