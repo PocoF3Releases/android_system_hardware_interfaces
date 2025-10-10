@@ -128,6 +128,7 @@ cc_test {
         "SystemSuspend.cpp",
         "SystemSuspendAidl.cpp",
         "SystemSuspendUnitTest.cpp",
+        "SuspendInfoHistogramUnitTest.cpp",
         "WakeLockEntryList.cpp",
         "WakeupList.cpp",
     ],
