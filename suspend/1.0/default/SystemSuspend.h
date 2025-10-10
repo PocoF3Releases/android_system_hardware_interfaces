@@ -31,6 +31,7 @@
 #include "SuspendControlService.h"
 #include "WakeLockEntryList.h"
 #include "WakeupList.h"
+#include "SuspendInfoHistogram.h"
 
 namespace android {
 namespace system {
@@ -166,6 +167,15 @@ class SystemSuspend : public RefBase {
     unique_fd mWakeLockFd;
     unique_fd mWakeUnlockFd;
     unique_fd mWakeupReasonsFd;
+
+    // Histogram data for SuspendInfo
+    SuspendInfoHistogram mConsecutiveBadSuspendHist = std::vector<int64_t>{2, 4, 7, 11};
+    SuspendInfoHistogram mSuspendDurationHist = std::vector<int64_t>{1000, 2500, 4000, 7000, 12000};
+
+    // Updates extended suspend info stats
+    void updateExtendedSuspendInfo(bool success, bool badSuspend,
+                                   const struct SuspendTime& suspendTime)
+        REQUIRES(mSuspendInfoLock);
 };
 
 }  // namespace V1_0
