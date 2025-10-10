@@ -55,4 +55,31 @@ parcelable SuspendInfo {
 
     /* Total time, in milliseconds, that system has waited between suspend attempts */
     long sleepTimeMillis;
+
+    /**
+     * A histogram of successful suspend durations, in milliseconds.
+     * Bin upper bounds: 1000, 2500, 4000, 7000, 12000. Final bin is >= 12000.
+     */
+    long[] suspendDurationMillisBins = {0, 0, 0, 0, 0, 0};
+
+    /**
+     * A histogram of the lengths of consecutive bad suspend streaks.
+     * Bin upper bounds: 2, 4, 7, 11. Final bin is >= 11.
+     */
+    long[] consecutiveBadSuspendBins = {0, 0, 0, 0, 0};
+
+    /**
+     * Number of times a backoff chain continued
+     * while the delay was capped at its maximum value.
+     */
+    long maxBackoffContinuations = 0;
+
+    /* Number of times a bad suspend occurred following a good suspend */
+    long newBadSuspends = 0;
+
+    /**
+     * The number of bad suspends that occurred in sequences which ended in
+     * a good suspend before the backoff threshold was reached.
+     */
+    long earlyRecoveryBadSuspends = 0;
 }
