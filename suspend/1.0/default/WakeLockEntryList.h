@@ -101,10 +101,10 @@ class WakeLockEntryList {
         class LockedFd {
            public:
             int get() const { return mFdWithMutex->mFd; }
-            bool isValid() const { return mFdWithMutex->mFd != -1; }
-
-            void clear() { mFdWithMutex->mFd.reset(); }
             void set(unique_fd&& newFd) { mFdWithMutex->mFd = std::move(newFd); }
+
+            bool isValid() const { return mFdWithMutex->mFd != -1; }
+            void invalidate() { mFdWithMutex->mFd.reset(); }
 
             // Need move ctor and assignment for std::optional<LockedFd>.
             LockedFd(LockedFd&& other) {
@@ -138,6 +138,10 @@ class WakeLockEntryList {
         std::mutex mLock;
         unique_fd mFd;
     };
+
+    int openFDAndUpdateCache(const std::string& statName, const std::string& kwlId,
+                             std::optional<FdWithMutex::LockedFd>* acquiredFd) const
+        REQUIRES(mLock);
 
     mutable std::unordered_map<std::string, unique_fd> mFdCache GUARDED_BY(mLock);
     mutable std::unordered_map<std::string, FdWithMutex> mFdWithMutexCache GUARDED_BY(mLock);
