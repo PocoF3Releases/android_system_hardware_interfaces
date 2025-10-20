@@ -25,7 +25,7 @@ import android.media.audio.common.AudioUsage;
  * AudioAttributes give information about an audio stream that is more
  * descriptive than stream type alone.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

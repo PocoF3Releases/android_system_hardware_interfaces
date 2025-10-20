@@ -33,4 +33,9 @@ props {
     type: Double
     prop_name: "suspend.sleep_time_scale_factor"
   }
+  prop {
+    api_name: "post_resume_min_stay_awake_time_millis"
+    type: UInt
+    prop_name: "suspend.post_resume_min_stay_awake_time_millis"
+  }
 }

@@ -25,7 +25,7 @@ import android.media.audio.common.AudioDevice;
  * orientation of the microphone on the device as well as useful information
  * like frequency response and sensitivity.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

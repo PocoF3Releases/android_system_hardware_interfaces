@@ -16,6 +16,7 @@
 
 package android.system.suspend.internal;
 
+import android.system.suspend.internal.AggregatedKernelWakelockInfo;
 import android.system.suspend.internal.SuspendInfo;
 import android.system.suspend.internal.WakeLockInfo;
 import android.system.suspend.internal.WakeupInfo;
@@ -60,6 +61,11 @@ interface ISuspendControlServiceInternal {
      * Returns stats related to suspend.
      */
     SuspendInfo getSuspendStats();
+
+    /**
+     * Returns aggregated stats from kernel wakelocks.
+     */
+    AggregatedKernelWakelockInfo getKernelWakelockDurationStats();
 
     /**
      * Used to select fields from WakeLockInfo that getWakeLockStats should return.

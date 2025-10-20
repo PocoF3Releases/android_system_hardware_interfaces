@@ -30,7 +30,7 @@ package android.media.audio.common;
  * for output and microphones can only be used for input (at least, in the
  * context of the audio framework).
  *
- * {@hide}
+ * @hide
  */
 @SuppressWarnings(value={"redundant-name"}) // for IN/OUT_DEVICE
 @VintfStability
@@ -99,6 +99,10 @@ enum AudioDeviceType {
      * Input from a phone / table dock.
      */
     IN_DOCK = 14,
+    /**
+     * Hearing aid.
+     */
+    IN_HEARING_AID = 15,
     /**
      * An alias for "bus" devices. Must have an empty connection type.
      *

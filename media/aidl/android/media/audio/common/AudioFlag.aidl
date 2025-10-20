@@ -19,7 +19,7 @@ package android.media.audio.common;
 /**
  * Defines the audio flags that are used in AudioAttributes
  *
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability

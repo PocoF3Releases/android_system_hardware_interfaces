@@ -20,7 +20,7 @@ package android.media.audio.common;
  * streams (see AudioEncapsulationMode). This type corresponds to
  * AudioTrack.ENCAPSULATION_METADATA_TYPE_* constants in the SDK.
  *
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability

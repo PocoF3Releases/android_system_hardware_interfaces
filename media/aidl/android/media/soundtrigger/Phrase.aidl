@@ -18,7 +18,7 @@ package android.media.soundtrigger;
 /**
  * Key phrase descriptor.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

@@ -141,4 +141,9 @@ enum ResponseCode {
      * Indicates that some information is not available.
      */
     INFO_NOT_AVAILABLE = 28,
+
+    /**
+     * Indicates that an app has an excessive number of Android Keystore keys.
+     */
+    TOO_MANY_APP_KEYS = 29,
 }

@@ -20,7 +20,7 @@ package android.media.audio.common;
  * general category of the content: speech, music, movie audio, etc.
  * This enum corresponds to AudioAttributes.CONTENT_TYPE_* constants in the SDK.
  *
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability

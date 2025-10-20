@@ -1272,6 +1272,7 @@ class mock_flag_provider_interface : public suspend_service::flags::flag_provide
    public:
     MOCK_METHOD(bool, fast_kernel_wakelock_reporting, (), (override));
     MOCK_METHOD(bool, fast_kernel_wakelock_reporting_v2, (), (override));
+    MOCK_METHOD(bool, suspend_backoff_observability, (), (override));
 };
 
 enum class KernelWakeLockFdType { Uncached, CachedV1, CachedV2 };
@@ -1893,6 +1894,256 @@ TEST_P(ParameterizedSystemSuspendSameThreadTest, GetKernelWakeLockStatsFiltered)
         ASSERT_EQ(field.getter(wli), field.expectedValue)
             << "Bit mask " << field.bit << " had unexpected value";
     }
+}
+
+// Test that suspend sleep obervability wakelocks work as intended
+const char* totalWakelockName = "SuspendControl.TotalSuspendDelay";
+const char* shortWakelockName = "SuspendControl.ShortSuspendDelay";
+const char* normalWakelockName = "SuspendControl.NormalSuspendDelay";
+const char* failedWakelockName = "SuspendControl.FailedSuspendDelay";
+
+class SystemSuspendDelayTest : public ::testing::TestWithParam<bool> {
+   public:
+    virtual void SetUp() override {
+        auto mock_flag_provider = std::make_unique<mock_flag_provider_interface>();
+        ON_CALL(*mock_flag_provider, suspend_backoff_observability())
+            .WillByDefault(::testing::Return(GetParam()));
+        suspend_service::flags::provider_ = std::move(mock_flag_provider);
+
+        Socketpair(SOCK_STREAM, &wakeupCountTestFd, &wakeupCountServiceFd);
+
+        suspendControl = new SuspendControlService();
+
+        suspendControlInternal = new SuspendControlServiceInternal();
+
+        suspendTimeFd =
+            unique_fd(TEMP_FAILURE_RETRY(open(suspendTimeFile.path, O_CLOEXEC | O_RDONLY)));
+
+        wakeupReasonsFd =
+            unique_fd(TEMP_FAILURE_RETRY(open(wakeupReasonsFile.path, O_CLOEXEC | O_RDONLY)));
+
+        systemSuspend = new SystemSuspend(
+            std::move(wakeupCountServiceFd), getStateFd(), unique_fd(-1) /* suspendStatsFd */,
+            100 /* maxStatsEntries */, unique_fd(-1) /* kernelWakelockStatsFd */,
+            std::move(wakeupReasonsFd), std::move(suspendTimeFd), kSleepTimeConfig, suspendControl,
+            suspendControlInternal);
+
+        // Start auto-suspend.
+        bool enabled = false;
+        suspendControlInternal->enableAutosuspend(new BBinder(), &enabled);
+        ASSERT_EQ(enabled, true) << "failed to start autosuspend";
+    }
+
+    virtual void TearDown() override { systemSuspend->disableAutosuspend(); }
+
+    virtual unique_fd getStateFd() {
+        Socketpair(SOCK_STREAM, &stateTestFd, &stateServiceFd);
+        return std::move(stateServiceFd);
+    }
+
+    // Wait for wakelock's active count to reach a certain value.
+    bool waitForActiveCount(
+        const std::string& wl_name, int expectedCount,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds(100),
+        std::chrono::milliseconds pollingInterval = std::chrono::milliseconds(10)) {
+        std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start_time < timeout) {
+            std::vector<WakeLockInfo> wlStats = getWakelockStats();
+            WakeLockInfo wlInfo;
+            if (findWakeLockInfoByName(wlStats, wl_name, &wlInfo) &&
+                wlInfo.activeCount == expectedCount) {
+                return true;
+            }
+            std::this_thread::sleep_for(pollingInterval);
+        }
+        return false;
+    }
+
+    bool findWakeLockInfoByName(const std::vector<WakeLockInfo>& wlStats, const std::string& name,
+                                WakeLockInfo* info) {
+        auto it = std::find_if(wlStats.begin(), wlStats.end(),
+                               [&name](const auto& x) { return x.name == name; });
+        if (it != wlStats.end()) {
+            *info = *it;
+            return true;
+        }
+        return false;
+    }
+
+    int64_t findWakelockTimeByName(const char* wakelockName) {
+        WakeLockInfo wlInfo;
+        std::vector<WakeLockInfo> wlStats = getWakelockStats();
+        if (findWakeLockInfoByName(wlStats, wakelockName, &wlInfo)) {
+            EXPECT_FALSE(wlInfo.isActive);
+            return wlInfo.totalTime;
+        }
+        return 0;
+    }
+
+    std::vector<WakeLockInfo> getWakelockStats() {
+        std::vector<WakeLockInfo> wlStats;
+        suspendControlInternal->getWakeLockStats(&wlStats);
+        return wlStats;
+    }
+
+    virtual void checkLoop() {
+        // Mock value for /sys/power/wakeup_count.
+        std::string wakeupCount = std::to_string(rand());
+        ASSERT_TRUE(WriteStringToFd(wakeupCount, wakeupCountTestFd));
+        ASSERT_EQ(readFd(wakeupCountTestFd), wakeupCount)
+            << "wakeup count value written by SystemSuspend is not equal to value given to it";
+        ASSERT_EQ(readFd(stateTestFd), "mem")
+            << "SystemSuspend failed to write correct sleep state.";
+        // There is a race window where sleepTime can be checked in the tests,
+        // before it is updated in autoSuspend
+        while (!isReadBlocked(wakeupCountTestFd)) {
+        }
+    }
+
+    void suspendFor(std::chrono::milliseconds suspendTime) {
+        std::string suspendStr =
+            "0.001 " /* placeholder */ +
+            std::to_string(
+                std::chrono::duration_cast<std::chrono::duration<double>>(suspendTime).count());
+        ASSERT_TRUE(WriteStringToFile(suspendStr, suspendTimeFile.path));
+        checkLoop();
+    }
+
+    unique_fd wakeupCountServiceFd;
+    unique_fd stateServiceFd;
+    unique_fd stateTestFd;
+    unique_fd wakeupCountTestFd;
+    unique_fd wakeupReasonsFd;
+    unique_fd suspendTimeFd;
+    TemporaryFile wakeupReasonsFile;
+    TemporaryFile suspendTimeFile;
+    TemporaryFile stateFile;
+    TemporaryFile wakeupCountFile;
+    sp<SuspendControlService> suspendControl;
+    sp<SuspendControlServiceInternal> suspendControlInternal;
+    sp<SystemSuspend> systemSuspend;
+
+    const SleepTimeConfig kSleepTimeConfig = {
+        .baseSleepTime = 100ms,
+        .maxSleepTime = 400ms,
+        .sleepTimeScaleFactor = 1.9,
+        .backoffThreshold = 0,
+        .shortSuspendThreshold = 100ms,
+        .failedSuspendBackoffEnabled = true,
+        .shortSuspendBackoffEnabled = true,
+    };
+};
+
+class SystemSuspendDelayFailedTest : public SystemSuspendDelayTest {
+   public:
+    unique_fd getStateFd() override { return unique_fd(-1); }
+
+    void checkLoop() override {
+        // Mock value for /sys/power/wakeup_count.
+        std::string wakeupCount = std::to_string(rand());
+        ASSERT_TRUE(WriteStringToFd(wakeupCount, wakeupCountTestFd));
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(SystemSuspendDelayTest, SystemSuspendDelayTest, ::testing::Bool());
+
+INSTANTIATE_TEST_SUITE_P(SystemSuspendDelayFailedTest, SystemSuspendDelayFailedTest,
+                         ::testing::Bool());
+
+TEST_P(SystemSuspendDelayFailedTest, SuspendFailedDelayTest) {
+    bool flagEnabled = GetParam();
+    auto backoffDelayDuration =
+        flagEnabled ? std::chrono::round<std::chrono::milliseconds>(
+                          kSleepTimeConfig.baseSleepTime * kSleepTimeConfig.sleepTimeScaleFactor)
+                    : 0ms;
+
+    waitForActiveCount(totalWakelockName, 0, 200ms);
+    auto startTotalTime = findWakelockTimeByName(totalWakelockName);
+    auto startFailedTime = findWakelockTimeByName(failedWakelockName);
+
+    suspendFor(100ms);
+    if (flagEnabled) {
+        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 1))
+                << "Timeout waiting for suspend delay wakelock to be active";
+        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 0, 200ms))
+                << "Timeout waiting for suspend delay wakelock to be inactive";
+    }
+
+    auto endTotalTime = findWakelockTimeByName(totalWakelockName);
+    auto endShortTime = findWakelockTimeByName(failedWakelockName);
+
+    auto totalTimeHeld = endTotalTime - startTotalTime;
+    EXPECT_GE(totalTimeHeld, backoffDelayDuration.count());
+    EXPECT_LT(totalTimeHeld, backoffDelayDuration.count() + 15) << "Wakelock held for too long";
+
+    auto failedTimeHeld = endShortTime - startFailedTime;
+    EXPECT_GE(failedTimeHeld, backoffDelayDuration.count());
+    EXPECT_LT(failedTimeHeld, backoffDelayDuration.count() + 15) << "Wakelock held for too long";
+}
+
+TEST_P(SystemSuspendDelayTest, SuspendNormalDelayTest) {
+    bool flagEnabled = GetParam();
+    auto backoffDelayDuration =
+        flagEnabled ? std::chrono::round<std::chrono::milliseconds>(kSleepTimeConfig.baseSleepTime)
+                    : 0ms;
+
+    waitForActiveCount(totalWakelockName, 0, 200ms);
+    auto startTotalTime = findWakelockTimeByName(totalWakelockName);
+    auto startNormalTime = findWakelockTimeByName(normalWakelockName);
+
+    suspendFor(100ms);
+    if (flagEnabled) {
+        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 1))
+                << "Timeout waiting for suspend delay wakelock to be active";
+        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 0, 200ms))
+                << "Timeout waiting for suspend delay wakelock to be inactive";
+    }
+
+    auto endTotalTime = findWakelockTimeByName(totalWakelockName);
+    auto endNormalTime = findWakelockTimeByName(normalWakelockName);
+
+    auto totalTimeHeld = endTotalTime - startTotalTime;
+    EXPECT_GE(totalTimeHeld, backoffDelayDuration.count());
+    EXPECT_LT(totalTimeHeld, backoffDelayDuration.count() + 15) << "Wakelock held for too long";
+
+    auto normalTimeHeld = endNormalTime - startNormalTime;
+    EXPECT_GE(normalTimeHeld, backoffDelayDuration.count());
+    EXPECT_LT(normalTimeHeld, backoffDelayDuration.count() + 15) << "Wakelock held for too long";
+
+    suspendFor(100ms);
+}
+
+TEST_P(SystemSuspendDelayTest, SuspendShortDelayTest) {
+    bool flagEnabled = GetParam();
+    auto backoffDelayDuration =
+        flagEnabled ? std::chrono::round<std::chrono::milliseconds>(
+                          kSleepTimeConfig.baseSleepTime * kSleepTimeConfig.sleepTimeScaleFactor)
+                    : 0ms;
+
+    waitForActiveCount(totalWakelockName, 0, 200ms);
+    auto startTotalTime = findWakelockTimeByName(totalWakelockName);
+    auto startShortTime = findWakelockTimeByName(shortWakelockName);
+
+    suspendFor(10ms);
+    if (flagEnabled) {
+        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 1))
+                << "Timeout waiting for suspend delay wakelock to be active";
+        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 0, 200ms))
+                << "Timeout waiting for suspend delay wakelock to be inactive";
+    }
+
+    auto endTotalTime = findWakelockTimeByName(totalWakelockName);
+    auto endShortTime = findWakelockTimeByName(shortWakelockName);
+
+    auto totalTimeHeld = endTotalTime - startTotalTime;
+    EXPECT_GE(totalTimeHeld, backoffDelayDuration.count());
+    EXPECT_LT(totalTimeHeld, backoffDelayDuration.count() + 15) << "Wakelock held for too long";
+
+    auto shortTimeHeld = endShortTime - startShortTime;
+    EXPECT_GE(shortTimeHeld, backoffDelayDuration.count());
+    EXPECT_LT(shortTimeHeld, backoffDelayDuration.count() + 15) << "Wakelock held for too long";
+
+    suspendFor(100ms);
 }
 
 }  // namespace android

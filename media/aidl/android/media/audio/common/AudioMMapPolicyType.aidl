@@ -17,7 +17,7 @@ package android.media.audio.common;
 
 /**
  * The aaudio MMAP policy type.
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability

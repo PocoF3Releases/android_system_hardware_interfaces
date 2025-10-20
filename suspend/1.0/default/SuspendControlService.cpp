@@ -18,7 +18,13 @@
 
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
+#include <bpf/bpf.h>
+#include <bpf_kernelwakelockduration.h>
+#include <linux/bpf.h>
 #include <signal.h>
+#include <time.h>
+
+#include <optional>
 
 #include "SystemSuspend.h"
 
@@ -32,6 +38,23 @@ namespace V1_0 {
 
 static void register_sig_handler() {
     signal(SIGPIPE, SIG_IGN);
+}
+
+void SuspendControlServiceInternal::initializeKernelWakelockDuration() {
+    struct bpf_obj_get_opts opts = {
+        .sz = sizeof(struct bpf_obj_get_opts), .file_flags = BPF_F_RDONLY, .path_fd = 0};
+
+    kernelWakelockDurationBpfMap =
+        android::base::unique_fd{bpf_obj_get_opts(kProgramStateMapPath, &opts)};
+
+    if (kernelWakelockDurationBpfMap < 0) {
+        LOG(ERROR) << "Cannot open the KernelWakelockDuration eBPF map. Error code: "
+                   << kernelWakelockDurationBpfMap.get();
+
+        return;
+    }
+
+    LOG(INFO) << "KernelWakelockDuration initialized";
 }
 
 template <typename T>
@@ -189,6 +212,72 @@ binder::Status SuspendControlServiceInternal::getWakeLockStats(
     return binder::Status::ok();
 }
 
+std::optional<uint64_t> SuspendControlServiceInternal::getKernelWakelockDurationStatsInternal() {
+    if (kernelWakelockDurationBpfMap < 0) {
+        LOG(ERROR) << "KernelWakelockDuration is not initialized";
+        return std::nullopt;
+    }
+
+    int maxRetries = 3;
+    int key = 0;
+    struct kernel_wakelock_duration_program_state program_state;
+
+    for (int i = 0; i < maxRetries; i++) {
+        int ret = bpf_map_lookup_elem(kernelWakelockDurationBpfMap.get(), &key, &program_state);
+
+        if (ret < 0) {
+            LOG(ERROR) << "Unable to read KernelWakelockDuration metric. Error code: " << ret;
+
+            return std::nullopt;
+        }
+
+        struct timespec ts;
+        if (clock_gettime(CLOCK_BOOTTIME, &ts) == -1) {
+            LOG(ERROR) << "Unable to read boot time";
+
+            return std::nullopt;
+        }
+        int64_t now = ts.tv_sec * 1e9 + ts.tv_nsec;
+
+        // If timer_state_ns is negative, it means that there are active kernel wakelocks. Summing
+        // the current boottime gives the accumulated total kernel wakelock time plus the duration
+        // of the current "active period" (time elapsed from the last time the kernel wakelocks
+        // count went from 0 to 1).
+        //
+        // If the timer_state_ns is outside of [-now, now], it means that we're trying to read
+        // the value during an inversion of order of wakelock events in the eBPF programs (the eBPF
+        // programs are processing the wakelocks in a different order than the one they were fired
+        // from the kernel). In this case, we retry to read the metric.
+
+        if ((program_state.timer_state_ns < -now) || (program_state.timer_state_ns > now)) {
+            continue;
+        }
+
+        uint64_t kernelWakelockDuration = program_state.timer_state_ns < 0
+                                              ? program_state.timer_state_ns + now
+                                              : program_state.timer_state_ns;
+
+        return std::make_optional(kernelWakelockDuration);
+    }
+
+    LOG(WARNING) << "KernelWakelockDuration metric was invalid even after retrying multiple times";
+    return std::nullopt;
+}
+
+binder::Status SuspendControlServiceInternal::getKernelWakelockDurationStats(
+    AggregatedKernelWakelockInfo* _aidl_return) {
+    std::optional<uint64_t> duration = getKernelWakelockDurationStatsInternal();
+
+    if (!duration) {
+        return binder::Status::fromExceptionCode(binder::Status::Exception::EX_SERVICE_SPECIFIC,
+                                                 "KernelWakelockDuration returned no value");
+    }
+
+    _aidl_return->kernelWakelockDuration = duration.value();
+
+    return binder::Status::ok();
+}
+
 binder::Status SuspendControlServiceInternal::getWakeLockStatsFiltered(
     int wakeLockInfoFieldBitMask, std::vector<WakeLockInfo>* _aidl_return) {
     const auto suspendService = mSuspend.promote();
@@ -272,6 +361,15 @@ status_t SuspendControlServiceInternal::dump(int fd, const Vector<String16>& arg
         std::stringstream wlStats;
         wlStats << suspendService->getStatsList();
         dprintf(fd, "\n%s\n", wlStats.str().c_str());
+
+        std::optional<uint64_t> duration = getKernelWakelockDurationStatsInternal();
+
+        if (!duration) {
+            dprintf(fd, "\nKernel wakelock total duration: No value\n");
+        } else {
+            dprintf(fd, "\nKernel wakelock total duration: %s ns\n",
+                    std::to_string(duration.value()).c_str());
+        }
     }
 
     if (opts & OPT_WAKEUPS) {

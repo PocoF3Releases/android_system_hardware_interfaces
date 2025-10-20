@@ -23,7 +23,7 @@ import android.media.audio.common.AudioDeviceType;
  * and their corresponding string literal representations. This is to be used
  * exclusively for the Configurable Audio Policy (CAP) engine configuration.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

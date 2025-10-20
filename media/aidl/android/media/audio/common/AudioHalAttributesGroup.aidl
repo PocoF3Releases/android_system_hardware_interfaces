@@ -24,7 +24,7 @@ import android.media.audio.common.AudioStreamType;
  * AudioStreamType and a collection of AudioAttributes. This is used in the
  * context of AudioHalProductStrategy.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

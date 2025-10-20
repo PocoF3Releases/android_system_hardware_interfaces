@@ -23,7 +23,7 @@ import android.media.audio.common.AudioPortMixExt;
  * Extra parameters of an AudioPort/AudioPortConfig that depend on
  * the actual port role.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

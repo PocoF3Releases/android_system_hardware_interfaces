@@ -19,7 +19,7 @@ package android.media.audio.common;
  * Commonly used structure for passing unique identifiers (UUID).
  * For the definition of UUID, refer to ITU-T X.667 spec.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

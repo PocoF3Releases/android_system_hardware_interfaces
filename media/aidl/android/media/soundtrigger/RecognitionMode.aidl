@@ -17,7 +17,7 @@ package android.media.soundtrigger;
 
 /**
  * Recognition mode.
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="int")

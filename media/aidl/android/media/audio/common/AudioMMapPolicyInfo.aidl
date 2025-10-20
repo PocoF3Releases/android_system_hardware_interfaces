@@ -21,7 +21,7 @@ import android.media.audio.common.AudioMMapPolicy;
 /**
  * Audio MMAP policy info describes how an aaudio MMAP feature can be
  * used on a particular device.
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

@@ -22,7 +22,7 @@ import android.media.audio.common.AudioFormatDescription;
 /**
  * Base configuration attributes applicable to any stream of audio.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

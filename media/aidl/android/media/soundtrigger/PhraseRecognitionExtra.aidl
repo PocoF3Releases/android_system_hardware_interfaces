@@ -19,7 +19,7 @@ import android.media.soundtrigger.ConfidenceLevel;
 
 /**
  * Specialized recognition event for key phrase detection.
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

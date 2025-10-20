@@ -18,9 +18,11 @@
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/hidl/manager/1.2/IServiceManager.h>
+#include <android_bpfprogs_flags.h>
 #include <binder/IPCThreadState.h>
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
+#include <bpf/WaitForProgsLoaded.h>
 #include <cutils/native_handle.h>
 #include <fcntl.h>
 #include <hidl/HidlTransportSupport.h>
@@ -68,6 +70,7 @@ static constexpr uint32_t kDefaultBackoffThresholdCount = 0;
 static constexpr uint32_t kDefaultShortSuspendThresholdMillis = 0;
 static constexpr bool kDefaultFailedSuspendBackoffEnabled = true;
 static constexpr bool kDefaultShortSuspendBackoffEnabled = false;
+static constexpr uint32_t kDefaultPostResumeMinStayAwakeTimeMillis = 0;
 
 int main() {
     unique_fd wakeupCountFd{TEMP_FAILURE_RETRY(open(kSysPowerWakeupCount, O_CLOEXEC | O_RDWR))};
@@ -124,6 +127,9 @@ int main() {
             kDefaultFailedSuspendBackoffEnabled),
         .shortSuspendBackoffEnabled = SuspendProperties::short_suspend_backoff_enabled().value_or(
             kDefaultShortSuspendBackoffEnabled),
+        .postResumeMinStayAwakeTime = std::chrono::milliseconds(
+            SuspendProperties::post_resume_min_stay_awake_time_millis().value_or(
+                kDefaultPostResumeMinStayAwakeTimeMillis)),
     };
 
     // Create non-HW binder threadpool for SuspendControlService.
@@ -141,6 +147,15 @@ int main() {
         String16("suspend_control_internal"), suspendControlInternal);
     if (controlStatus != android::OK) {
         LOG(FATAL) << "Unable to register suspend_control_internal service: " << controlStatus;
+    }
+
+    if (android::bpfprogs::flags::kernel_wakelock_duration()) {
+        std::thread([&] {
+            android::bpf::waitForProgsLoaded();
+            suspendControlInternal->initializeKernelWakelockDuration();
+        }).detach();
+    } else {
+        LOG(INFO) << "KernelWakelockDuration flag is disabled";
     }
 
     sp<SystemSuspend> suspend = new SystemSuspend(

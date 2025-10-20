@@ -22,7 +22,7 @@ package android.media.audio.common;
  *
  * This information can be used to update the view or content based on the user's head movement.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability
@@ -30,7 +30,7 @@ parcelable HeadTracking {
     /**
      * The head tracking mode supported by the spatializer effect implementation.
      * Used by methods of the ISpatializer interface.
-     * {@hide}
+     * @hide
      */
     @Backing(type="byte")
     enum Mode {
@@ -57,7 +57,7 @@ parcelable HeadTracking {
 
     /**
      * The head tracking sensor connection modes.
-     * {@hide}
+     * @hide
      */
     @Backing(type="byte")
     enum ConnectionMode {
@@ -90,7 +90,7 @@ parcelable HeadTracking {
      * The Headtracking sensor data.
      * In the current version, the only sensor data format framework send to HAL Spatializer is
      * "head-to-stage". Other formats can be added in future versions, hence a union is used.
-     * {@hide}
+     * @hide
      */
     union SensorData {
         /**

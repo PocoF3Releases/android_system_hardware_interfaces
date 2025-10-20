@@ -22,7 +22,7 @@ import android.media.soundtrigger.Phrase;
  * Specialized sound model for key phrase detection.
  * Proprietary representation of key phrases in binary data must match
  * information indicated by phrases field.
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

@@ -21,7 +21,7 @@ import android.media.soundtrigger.SoundModelType;
 
 /**
  * An event that gets sent to indicate a recognition (or aborting of the recognition process).
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

@@ -21,7 +21,7 @@ import android.media.soundtrigger.RecognitionEvent;
 /**
  * An event that gets sent to indicate a phrase recognition (or aborting of the recognition
    process).
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

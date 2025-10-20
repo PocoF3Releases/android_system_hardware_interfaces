@@ -31,7 +31,7 @@ import android.media.audio.common.PcmType;
  * by the framework when they are received from different HAL modules without
  * relying on having some centralized registry of enumeration values.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

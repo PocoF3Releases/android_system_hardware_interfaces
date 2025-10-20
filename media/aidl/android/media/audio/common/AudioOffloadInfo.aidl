@@ -24,7 +24,7 @@ import android.media.audio.common.AudioUsage;
 /**
  * Additional information about the stream passed to hardware decoders.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

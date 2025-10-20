@@ -22,7 +22,7 @@ import android.media.audio.common.AudioOffloadInfo;
 /**
  * Commonly used audio stream configuration parameters.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

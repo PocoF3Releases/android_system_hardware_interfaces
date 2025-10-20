@@ -20,7 +20,7 @@ package android.media.audio.common;
  * The type of the encoding used for representing PCM samples. Only used as
  * part of 'AudioFormatDescription' structure.
  *
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="byte")

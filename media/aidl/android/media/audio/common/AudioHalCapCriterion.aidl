@@ -21,7 +21,7 @@ package android.media.audio.common;
  * This is to be used exclusively for the Configurable Audio Policy (CAP) engine
  * configuration.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

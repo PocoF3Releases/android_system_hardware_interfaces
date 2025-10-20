@@ -19,7 +19,7 @@ package android.media.soundtrigger;
  * A recognition confidence level.
  * This type is used to represent either a threshold or an actual detection confidence level.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals = true, toString = true)
 @VintfStability

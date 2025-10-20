@@ -18,7 +18,7 @@ package android.media.audio.common;
 /**
  * The audio standard that describe audio playback/capture capabilites.
  *
- * {@hide}
+ * @hide
  */
 @Backing(type="int")
 @VintfStability

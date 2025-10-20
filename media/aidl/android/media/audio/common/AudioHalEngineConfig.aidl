@@ -31,7 +31,7 @@ import android.media.audio.common.AudioProductStrategyType;
  * is determined only once, and it is done by checking presence of
  * capSpecificConfig during client initialization.
  *
- * {@hide}
+ * @hide
  */
 @JavaDerive(equals=true, toString=true)
 @VintfStability

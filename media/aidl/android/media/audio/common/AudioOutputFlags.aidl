@@ -22,7 +22,7 @@ package android.media.audio.common;
  * audio streams. Flags specified for an audio stream are usually used to find
  * the best matching audio port for it.
  *
- * {@hide}
+ * @hide
  */
 @VintfStability
 @Backing(type="int")
