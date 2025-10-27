@@ -352,6 +352,31 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(const std::string& kwlId) cons
     return info;
 }
 
+int WakeLockEntryList::openFDAndUpdateCache(
+    const std::string& statName, const std::string& kwlId,
+    std::optional<FdWithMutex::LockedFd>* acquiredFd) const {
+    unique_fd tmpFd(
+        TEMP_FAILURE_RETRY(openat(mKernelWakelockStatsFd, statName.c_str(), O_CLOEXEC | O_RDONLY)));
+    if (tmpFd < 0) {
+        PLOG(ERROR) << "Error opening " << statName << " for " << kwlId;
+        return -1;
+    }
+    int ret = tmpFd;
+
+    if (fast_kernel_wakelock_reporting_v2()) {
+        if (acquiredFd->has_value()) {
+            (*acquiredFd)->set(std::move(tmpFd));
+        } else {
+            auto result = mFdWithMutexCache.emplace(statName, std::move(tmpFd));
+            *acquiredFd = result.first->second.acquire();
+        }
+    } else {
+        mFdCache[statName] = std::move(tmpFd);
+    }
+
+    return ret;
+}
+
 /*
  * Creates and returns a kernel wakelock entry with data read from mKernelWakelockStatsFd.
  * Has been micro-optimized to reduce CPU time and wall time.
@@ -395,35 +420,24 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(ScratchSpace* ss, int wakeLock
             }
             if (acquiredFd && acquiredFd->isValid()) {
                 auto result = lseek(acquiredFd->get(), 0, SEEK_SET);
-                if (result < 0) {
+                if (result != 0) {
                     PLOG(ERROR) << "Could not seek to start of FD for " << ss->statName;
-                    acquiredFd.reset();
+                    acquiredFd->invalidate();
                     PLOG(ERROR) << "Closed the FD.";
                 } else {
                     statFd = acquiredFd->get();
                 }
             }
-            if (statFd == -1) {
-                unique_fd tmpFd(TEMP_FAILURE_RETRY(
-                    openat(mKernelWakelockStatsFd, ss->statName.c_str(), O_CLOEXEC | O_RDONLY)));
-                if (tmpFd < 0) {
-                    PLOG(ERROR) << "Error opening " << ss->statName << " for " << kwlId;
-                    continue;
-                }
-                statFd = tmpFd;
-                if (acquiredFd) {
-                    acquiredFd->set(std::move(tmpFd));
-                } else {
-                    auto result = mFdWithMutexCache.emplace(ss->statName, std::move(tmpFd));
-                    acquiredFd = result.first->second.acquire();
-                }
-            }  // acquiredFd is guaranteed to be set here
+            if ((statFd = openFDAndUpdateCache(ss->statName, kwlId, &acquiredFd)) < 0) {
+                continue;
+            }
+            // acquiredFd is guaranteed to be set here.
         } else {
             std::lock_guard<std::mutex> lock(mLock);
             auto it = mFdCache.find(ss->statName);
             if (it != mFdCache.end() && it->second >= 0) {
                 auto result = lseek(it->second, 0, SEEK_SET);
-                if (result < 0) {
+                if (result != 0) {
                     PLOG(ERROR) << "Could not seek to start of FD for " << ss->statName;
                     mFdCache.erase(it);
                     PLOG(ERROR) << "Closed the FD.";
@@ -432,28 +446,36 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(ScratchSpace* ss, int wakeLock
                 }
             }
 
-            if (statFd == -1) {
-                unique_fd tmpFd(TEMP_FAILURE_RETRY(
-                    openat(mKernelWakelockStatsFd, ss->statName.c_str(), O_CLOEXEC | O_RDONLY)));
-                if (tmpFd < 0) {
-                    PLOG(ERROR) << "Error opening " << ss->statName << " for " << kwlId;
-                    continue;
-                }
-                statFd = tmpFd;
-                mFdCache.insert(it, {ss->statName, std::move(tmpFd)});
+            if ((statFd = openFDAndUpdateCache(ss->statName, kwlId, &acquiredFd)) < 0) {
+                continue;
             }
         }  // mLock is released here
 
+        // Try reading from the FD
         ss->valStr.clear();
-        ssize_t n;
-        while ((n = TEMP_FAILURE_RETRY(read(statFd, &ss->readBuff[0], sizeof(ss->readBuff)))) > 0) {
-            ss->valStr.append(ss->readBuff, n);
+        ssize_t n = TEMP_FAILURE_RETRY(read(statFd, &ss->readBuff[0], sizeof(ss->readBuff)));
+
+        // ENODEVICE means that FD was invalidated by the kernel. If so, re-open and re-read.
+        if (n < 0 && errno == ENODEV) {
+            {
+                std::lock_guard<std::mutex> lock(mLock);
+                if ((statFd = openFDAndUpdateCache(ss->statName, kwlId, &acquiredFd)) < 0) {
+                    continue;
+                }
+            }
+            n = TEMP_FAILURE_RETRY(read(statFd, &ss->readBuff[0], sizeof(ss->readBuff)));
         }
+
+        while (n > 0) {
+            ss->valStr.append(ss->readBuff, n);
+            n = TEMP_FAILURE_RETRY(read(statFd, &ss->readBuff[0], sizeof(ss->readBuff)));
+        }
+
         if (n < 0) {
             PLOG(ERROR) << "Error reading " << ss->statName;
             {
                 if (fast_kernel_wakelock_reporting_v2()) {
-                    acquiredFd.reset();
+                    acquiredFd->invalidate();
                 } else {
                     std::lock_guard<std::mutex> lock(mLock);
                     mFdCache.erase(ss->statName);
