@@ -166,9 +166,7 @@ void WakeLockEntryList::evictIfFull() {
     if (mStats.size() == mCapacity) {
         auto evictIt = mStats.end();
         std::advance(evictIt, -1);
-        auto evictKey = std::make_pair(evictIt->name, evictIt->pid);
-        mLookupTable.erase(evictKey);
-        mStats.erase(evictIt);
+        deleteEntry(evictIt);
 
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
         long long secondsSinceLastLog =
