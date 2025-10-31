@@ -40,6 +40,7 @@ union AudioChannelLayout {
   int indexMask;
   int layoutMask;
   int voiceMask;
+  android.media.audio.common.AudioChannelLayout.Ambisonics acnMask;
   const int INDEX_MASK_1 = ((1 << 1) - 1) /* 1 */;
   const int INDEX_MASK_2 = ((1 << 2) - 1) /* 3 */;
   const int INDEX_MASK_3 = ((1 << 3) - 1) /* 7 */;
@@ -132,4 +133,46 @@ union AudioChannelLayout {
   const int VOICE_CALL_MONO = (CHANNEL_VOICE_UPLINK | CHANNEL_VOICE_DNLINK) /* 49152 */;
   const int CHANNEL_VOICE_UPLINK = 0x4000;
   const int CHANNEL_VOICE_DNLINK = 0x8000;
+  parcelable Ambisonics {
+    int channelCount;
+    android.media.audio.common.AudioChannelLayout.Ambisonics.SourceLayout layout = android.media.audio.common.AudioChannelLayout.Ambisonics.SourceLayout.FULL_SPHERE;
+    const byte MIN_ORDER = 0;
+    const byte MAX_ORDER = 14;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_0 = 1;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_1 = 4;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_2 = 9;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_3 = 16;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_4 = 25;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_5 = 36;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_6 = 49;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_7 = 64;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_8 = 81;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_9 = 100;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_10 = 121;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_11 = 144;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_12 = 169;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_13 = 196;
+    const int FULL_SPHERE_CHANNEL_COUNT_ORDER_14 = 225;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_0 = 1;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_1 = 3;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_2 = 5;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_3 = 7;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_4 = 9;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_5 = 11;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_6 = 13;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_7 = 15;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_8 = 17;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_9 = 19;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_10 = 21;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_11 = 23;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_12 = 25;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_13 = 27;
+    const int HORIZONTAL_CHANNEL_COUNT_ORDER_14 = 29;
+    const int MIN_CHANNEL_COUNT = FULL_SPHERE_CHANNEL_COUNT_ORDER_0 /* 1 */;
+    const int MAX_CHANNEL_COUNT = FULL_SPHERE_CHANNEL_COUNT_ORDER_14 /* 225 */;
+    enum SourceLayout {
+      FULL_SPHERE = 0,
+      HORIZONTAL = 1,
+    }
+  }
 }

@@ -18,21 +18,32 @@ package android.media.audio.common;
 
 /**
  * This structure describes a layout of a multi-channel stream.
- * There are two possible ways for representing a layout:
+ * There are three possible ways for representing a layout:
  *
  * - indexed mask, which tells what channels of an audio frame are used, but
  *   doesn't label them in any way, thus a correspondence between channels in
  *   the same position of frames originating from different streams must be
- *   established externally;
+ *   established externally. Indexed masks are the most universal ones however
+ *   their semantics depends on the use case, thus if the use case is known it
+ *   is recommended to use a specific channel mask type like layout mask or
+ *   ambisonics mask. One valid example of indexed masks use is with multi-
+ *   channel inputs where each channel or a pair of channels represents an
+ *   individual audio source, like a musical instrument track;
  *
- * - layout mask, which gives a label to each channel, thus allowing to
- *   match channels between streams of different layouts.
+ * - layout mask, which gives a spatial position label to each channel, thus
+ *   allowing to match channels between streams of different layouts. The
+ *   simplest example of it is conventional stereo layout, with other multi-
+ *   channel layouts adding more spatial channels on top of it;
  *
- * Both representations are agnostic of the direction of audio transfer. Also,
- * by construction, the number of bits set to '1' in the mask indicates the
- * number of channels in the audio frame. A channel mask per se only defines the
- * presence or absence of a channel, not the order. Please see 'INTERLEAVE_*'
- * constants for the platform convention of order.
+ * - ambisonics mask, which labels each channel using the Ambisonics Channel
+ *   Number (ACN) scheme. Android uses SN3D normalization.
+ *
+ * All representations are agnostic of the direction of audio transfer. Also, by
+ * construction of indexed and layout masks, the number of bits set to '1' in
+ * the mask indicates the number of channels in the audio frame. A channel mask
+ * per se only defines the presence or absence of a channel, not the
+ * order. Please see 'INTERLEAVE_*' constants for the platform convention of
+ * order.
  *
  * The structure also defines a "voice mask" which is a special case of
  * layout mask, intended for processing voice audio from telecommunication
@@ -77,6 +88,106 @@ union AudioChannelLayout {
      * must have at least one bit set.
      */
     int voiceMask;
+
+    /**
+     * Describes Ambisonics channel mask. Android uses ACN channel numbering
+     * and SN3D normalization.
+     */
+    parcelable Ambisonics {
+        /**
+         * Minimum supported Ambisonics order.
+         */
+        const byte MIN_ORDER = 0;
+        /**
+         * Maximum supported Ambisonics order.
+         */
+        const byte MAX_ORDER = 14;
+        /**
+         * Channel count values of the corresponding full sphere components set
+         * for each of supported Ambisonics order. The formula is (N + 1) ^ 2,
+         * where N is the order.
+         */
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_0 = 1;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_1 = 4;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_2 = 9;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_3 = 16;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_4 = 25;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_5 = 36;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_6 = 49;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_7 = 64;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_8 = 81;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_9 = 100;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_10 = 121;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_11 = 144;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_12 = 169;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_13 = 196;
+        const int FULL_SPHERE_CHANNEL_COUNT_ORDER_14 = 225;
+        /**
+         * Channel count values of the corresponding horizontal components set
+         * for each of supported Ambisonics order. The formula is 2 * N + 1,
+         * where N is the order. Example of the mapping of the horizontal 3rd
+         * order set onto a full sphere ACN set is as follows (indices are
+         * zero-based source channel indices and 'x' means that the destination
+         * channel is zeroed out):
+         *
+         *            [0]
+         *         [1, x, 2]
+         *      [3, x, x, x, 4]
+         *   [5, x, x, x, x, x, 6]
+         *
+         * The mapping naturally extends to higher orders.
+         *
+         * Note that horizontal order 0 is the same as full sphere order 0.
+         */
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_0 = 1;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_1 = 3;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_2 = 5;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_3 = 7;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_4 = 9;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_5 = 11;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_6 = 13;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_7 = 15;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_8 = 17;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_9 = 19;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_10 = 21;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_11 = 23;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_12 = 25;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_13 = 27;
+        const int HORIZONTAL_CHANNEL_COUNT_ORDER_14 = 29;
+        /**
+         * Minimum supported channel count.
+         */
+        const int MIN_CHANNEL_COUNT = FULL_SPHERE_CHANNEL_COUNT_ORDER_0;
+        /**
+         * Maximum supported channel count.
+         */
+        const int MAX_CHANNEL_COUNT = FULL_SPHERE_CHANNEL_COUNT_ORDER_14;
+        /**
+         * Specifies the number of source channels, for example the number of
+         * channels in a stream or in a file. The value must be in the range
+         * from 'MIN_CHANNEL_COUNT' to 'MAX_CHANNEL_COUNT', and depending on the
+         * layout must be one of the corresponding constants.
+         */
+        int channelCount;
+        /**
+         * Defines the layout of the Ambisonics channels. Currently only two layouts
+         * are allowed:
+         *  - FULL_SPHERE is the full periphony set, using (N + 1) ^ 2 channels,
+         *  - HORIZONTAL is the "2.5D" representation omitting height-related
+         *               components and requiring only 2 * N + 1 channels,
+         *  where 'N' is the Ambisonics order.
+         */
+        enum SourceLayout {
+            FULL_SPHERE = 0,
+            HORIZONTAL = 1,
+        }
+        SourceLayout layout = SourceLayout.FULL_SPHERE;
+    }
+    /**
+      * This variant is used to represent Ambisonics channel masks in the ACN
+      * channel order and SN3D normalization, according to ITU-R BS.2076-3.
+      */
+    Ambisonics acnMask;
 
     /**
      * 'INDEX_MASK_*' constants define how many channels are used.
