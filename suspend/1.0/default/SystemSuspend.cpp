@@ -52,6 +52,7 @@ using ::android::base::StringPrintf;
 using ::android::base::WriteStringToFd;
 using ::std::string;
 using suspend_service::flags::suspend_backoff_observability;
+using suspend_service::flags::extended_suspend_info;
 
 using ISCSI = ::android::system::suspend::internal::ISuspendControlServiceInternal;
 
@@ -455,6 +456,51 @@ void SystemSuspend::logKernelWakeLockStats() {
     LOG(INFO) << klStats.rdbuf();
 }
 
+
+/**
+ * Updates extended SuspendInfo fields when the extended_suspend_info flag is enabled.
+ *
+ * This includes the suspend duration histogram, consecutive bad suspends histogram,
+ * and other metrics related to suspend behavior.
+ */
+void SystemSuspend::updateExtendedSuspendInfo(bool success, bool badSuspend,
+                                              const struct SuspendTime& suspendTime)
+    REQUIRES(mSuspendInfoLock) {
+
+    if (!extended_suspend_info()) {
+        return;
+    }
+
+    if (success) {
+        auto suspendTimeMillis =
+            std::chrono::round<std::chrono::milliseconds>(suspendTime.suspendTime).count();
+        mSuspendDurationHist.addSample(suspendTimeMillis);
+    }
+
+    if (!badSuspend) {
+        if (mNumConsecutiveBadSuspends > 0) {
+            mConsecutiveBadSuspendHist.addSample(mNumConsecutiveBadSuspends);
+            if (mNumConsecutiveBadSuspends < kSleepTimeConfig.backoffThreshold) {
+                mSuspendInfo.earlyRecoveryBadSuspends += mNumConsecutiveBadSuspends;
+            }
+        }
+        return;
+    }
+    if (mNumConsecutiveBadSuspends == 0) {
+        mSuspendInfo.newBadSuspends++;
+    }
+    if (mNumConsecutiveBadSuspends >= kSleepTimeConfig.backoffThreshold) {
+        std::chrono::milliseconds nextSleepTime =
+            std::min(std::chrono::round<std::chrono::milliseconds>(
+                         mSleepTime * kSleepTimeConfig.sleepTimeScaleFactor),
+                     kSleepTimeConfig.maxSleepTime);
+
+        if (nextSleepTime == mSleepTime && nextSleepTime == kSleepTimeConfig.maxSleepTime) {
+            mSuspendInfo.maxBackoffContinuations++;
+        }
+    }
+}
+
 /**
  * Updates sleep time depending on the result of suspend attempt.
  * Time (in milliseconds) between suspend attempts is described the formula
@@ -490,6 +536,8 @@ void SystemSuspend::updateSleepTime(bool success, const struct SuspendTime& susp
         std::chrono::round<std::chrono::milliseconds>(suspendTime.suspendTime).count();
     auto suspendOverheadMillis =
         std::chrono::round<std::chrono::milliseconds>(suspendTime.suspendOverhead).count();
+
+    updateExtendedSuspendInfo(success, badSuspend, suspendTime);
 
     if (success) {
         mSuspendInfo.suspendOverheadTimeMillis += suspendOverheadMillis;
@@ -607,6 +655,9 @@ void SystemSuspend::updateStatsNow() {
 
 void SystemSuspend::getSuspendInfo(SuspendInfo* info) {
     std::scoped_lock lock(mSuspendInfoLock);
+
+    mSuspendInfo.consecutiveBadSuspendBins = mConsecutiveBadSuspendHist.getBinCounts();
+    mSuspendInfo.suspendDurationMillisBins = mSuspendDurationHist.getBinCounts();
 
     *info = mSuspendInfo;
 }

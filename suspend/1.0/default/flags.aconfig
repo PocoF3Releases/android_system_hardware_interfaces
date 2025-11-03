@@ -21,3 +21,10 @@ flag {
   description: "Adds wakelocks to observe when suspend sleep delays are occurring"
   bug: "431123280"
 }
+
+flag {
+  name: "extended_suspend_info"
+  namespace: "pixel_power_sw"
+  description: "Collects additional information about suspend state"
+  bug: "447090331"
+}
