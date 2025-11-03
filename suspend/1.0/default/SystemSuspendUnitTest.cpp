@@ -154,11 +154,12 @@ class SystemSuspendTest : public ::testing::Test {
         ASSERT_NE(suspendService, nullptr) << "failed to get suspend service";
 
         sp<IBinder> control =
-            android::defaultServiceManager()->getService(android::String16(kControlServiceName));
+            android::defaultServiceManager()->waitForService(
+                            android::String16(kControlServiceName));
         ASSERT_NE(control, nullptr) << "failed to get the suspend control service";
         sp<ISuspendControlService> controlService = interface_cast<ISuspendControlService>(control);
 
-        sp<IBinder> controlInternal = android::defaultServiceManager()->getService(
+        sp<IBinder> controlInternal = android::defaultServiceManager()->waitForService(
             android::String16(kControlServiceInternalName));
         ASSERT_NE(controlInternal, nullptr) << "failed to get the suspend control internal service";
         sp<ISuspendControlServiceInternal> controlServiceInternal =
@@ -182,11 +183,12 @@ class SystemSuspendTest : public ::testing::Test {
         ASSERT_NE(suspendService, nullptr) << "failed to get suspend service";
 
         sp<IBinder> control =
-            android::defaultServiceManager()->getService(android::String16(kControlServiceName));
+            android::defaultServiceManager()->waitForService(
+                            android::String16(kControlServiceName));
         ASSERT_NE(control, nullptr) << "failed to get the suspend control service";
         controlService = interface_cast<ISuspendControlService>(control);
 
-        sp<IBinder> controlInternal = android::defaultServiceManager()->getService(
+        sp<IBinder> controlInternal = android::defaultServiceManager()->waitForService(
             android::String16(kControlServiceInternalName));
         ASSERT_NE(controlInternal, nullptr) << "failed to get the suspend control internal service";
         controlServiceInternal = interface_cast<ISuspendControlServiceInternal>(controlInternal);
