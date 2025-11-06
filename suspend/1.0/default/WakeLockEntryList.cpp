@@ -208,6 +208,27 @@ void WakeLockEntryList::deleteEntry(std::list<WakeLockInfo>::iterator entry) {
 }
 
 /**
+ * Updates entry from stats list while accounting for MRU and other bookkeeping
+ */
+void WakeLockEntryList::updateEntry(WakeLockInfo updatedEntry,
+                                std::list<WakeLockInfo>::iterator staleEntry) {
+    if (updatedEntry.name != staleEntry->name ||
+        updatedEntry.pid != staleEntry->pid) {
+        LOG(ERROR) << "WakeLock Stats: updatedEntry (" << updatedEntry.name <<
+                    ", " << updatedEntry.pid << ") is not the same staleEntry ("
+                         << staleEntry->name << ", " << staleEntry->pid << ")";
+        return;
+    }
+    auto key = std::make_pair(staleEntry->name, staleEntry->pid);
+    int updatedCount = mNrActiveHolders[key];
+
+    // mNrActiveHolders[key] should not be reset on an update, so save its value
+    deleteEntry(staleEntry);
+    mNrActiveHolders[key] = updatedCount;
+    insertEntry(std::move(updatedEntry));
+}
+
+/**
  * Creates and returns a native wakelock entry.
  */
 WakeLockInfo WakeLockEntryList::createNativeEntry(const std::string& name, int pid,
@@ -571,18 +592,15 @@ void WakeLockEntryList::updateOnAcquire(const std::string& name, int pid) {
     } else {
         auto staleEntry = it->second;
         WakeLockInfo updatedEntry = *staleEntry;
-        int updatedCount;
 
         // Update entry
         updatedEntry.isActive = true;
         updatedEntry.activeTime = 0;
         updatedEntry.activeCount++;
         updatedEntry.lastChange = timeNow;
+        mNrActiveHolders[key]++;
 
-        updatedCount = mNrActiveHolders[key] + 1;
-        deleteEntry(staleEntry);
-        mNrActiveHolders[key] = updatedCount;
-        insertEntry(std::move(updatedEntry));
+        updateEntry(std::move(updatedEntry), staleEntry);
     }
 }
 
@@ -599,7 +617,6 @@ void WakeLockEntryList::updateOnRelease(const std::string& name, int pid) {
     } else {
         auto staleEntry = it->second;
         WakeLockInfo updatedEntry = *staleEntry;
-        int updatedCount;
 
         // Update entry
         TimestampType timeDelta = timeNow - updatedEntry.lastChange;
@@ -616,10 +633,7 @@ void WakeLockEntryList::updateOnRelease(const std::string& name, int pid) {
         updatedEntry.totalTime += timeDelta;
         updatedEntry.lastChange = timeNow;
 
-        updatedCount = mNrActiveHolders[key];
-        deleteEntry(staleEntry);
-        mNrActiveHolders[key] = updatedCount;
-        insertEntry(std::move(updatedEntry));
+        updateEntry(std::move(updatedEntry), staleEntry);
     }
 }
 

@@ -59,6 +59,9 @@ class WakeLockEntryList {
     void evictIfFull() REQUIRES(mLock);
     void insertEntry(WakeLockInfo entry) REQUIRES(mLock);
     void deleteEntry(std::list<WakeLockInfo>::iterator entry) REQUIRES(mLock);
+    void updateEntry(WakeLockInfo updatedEntry,
+                     std::list<WakeLockInfo>::iterator staleEntry)
+            REQUIRES(mLock);
     WakeLockInfo createNativeEntry(const std::string& name, int pid, TimestampType timeNow) const;
     WakeLockInfo createKernelEntry(const std::string& name) const;
 
