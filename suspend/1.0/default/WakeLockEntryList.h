@@ -51,6 +51,7 @@ class WakeLockEntryList {
     void updateNow();
     void getWakeLockStats(int wakeLockInfoFieldBitMask,
                           std::vector<WakeLockInfo>* aidl_return) const;
+    void clear();
     friend std::ostream& operator<<(std::ostream& out, const WakeLockEntryList& list);
 
    private:

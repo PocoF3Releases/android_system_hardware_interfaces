@@ -109,6 +109,7 @@ class SystemSuspend : public RefBase {
     void getSuspendInfo(SuspendInfo* info);
     std::chrono::milliseconds getSleepTime() const;
     unique_fd reopenFileUsingFd(const int fd, int permission);
+    WakeLockEntryList* getWakeLockEntryList() { return &mStatsList; }
 
    private:
     ~SystemSuspend(void) override;

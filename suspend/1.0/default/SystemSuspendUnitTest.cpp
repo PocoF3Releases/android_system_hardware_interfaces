@@ -178,6 +178,7 @@ class SystemSuspendTest : public ::testing::Test {
 
    public:
     virtual void SetUp() override {
+        systemSuspend->getWakeLockEntryList()->clear();
         suspendService = ISystemSuspend::fromBinder(
             ndk::SpAIBinder(AServiceManager_waitForService(kServiceName)));
         ASSERT_NE(suspendService, nullptr) << "failed to get suspend service";

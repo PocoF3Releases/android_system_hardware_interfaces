@@ -614,6 +614,13 @@ void WakeLockEntryList::updateOnRelease(const std::string& name, int pid) {
         insertEntry(std::move(updatedEntry));
     }
 }
+
+void WakeLockEntryList::clear() {
+    std::lock_guard<std::mutex> lock(mLock);
+    mStats.clear();
+    mLookupTable.clear();
+}
+
 /**
  * Updates the native wakelock stats based on the current time.
  */
