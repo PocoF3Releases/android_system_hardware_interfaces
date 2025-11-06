@@ -237,8 +237,8 @@ class SystemSuspendTest : public ::testing::Test {
         return count_if(wlStats.begin(), wlStats.end(), [](auto entry) { return entry.isActive; });
     }
 
-    // Wait for wakelock's active count to reach a certain value.
-    bool waitForActiveCount(
+    // Wait for wakelock's hold count to reach a certain value.
+    bool waitForNrActiveHolders(
         const std::string& wl_name, int expectedCount,
         std::chrono::milliseconds timeout = std::chrono::milliseconds(100),
         std::chrono::milliseconds pollingInterval = std::chrono::milliseconds(10)) {
@@ -246,8 +246,10 @@ class SystemSuspendTest : public ::testing::Test {
         while (std::chrono::steady_clock::now() - start_time < timeout) {
             std::vector<WakeLockInfo> wlStats = getWakelockStats();
             WakeLockInfo wlInfo;
+
             if (findWakeLockInfoByName(wlStats, wl_name, &wlInfo) &&
-                wlInfo.activeCount == expectedCount) {
+                expectedCount == systemSuspend->getWakeLockEntryList()
+                                ->nrActiveHolders(wl_name, wlInfo.pid)) {
                 return true;
             }
             std::this_thread::sleep_for(pollingInterval);
@@ -897,9 +899,9 @@ TEST_F(SystemSuspendTest, CallbackNotifyWakelock) {
     cb2->disable();
 }
 
-// Tests for a potential race condition in wakelock stats updates.
-// This checks wakelock accounting when a wakelock is acquired and released, and a re-acquire
-// happens immediately.
+// Tests for a potential race condition in wakelock stats updates. This checks
+// wakelock accounting when a wakelock is acquired and released, and a
+// re-acquire happens immediately.
 TEST_F(SystemSuspendTest, WakeLockStatsRaceConditionTest) {
     constexpr int kNumRetries = 100;
 
@@ -917,31 +919,32 @@ TEST_F(SystemSuspendTest, WakeLockStatsRaceConditionTest) {
         ASSERT_NE(wlB, nullptr);
 
         // Let the release operation complete.
-        EXPECT_TRUE(waitForActiveCount(testLockName, 1))
+        EXPECT_TRUE(waitForNrActiveHolders(testLockName, 1))
             << "Timeout waiting for activeCount to reach 1 (retry: " << i << ")";
 
         std::vector<WakeLockInfo> wlStats = getWakelockStats();
         WakeLockInfo wlInfo;
         ASSERT_TRUE(findWakeLockInfoByName(wlStats, testLockName, &wlInfo));
         EXPECT_TRUE(wlInfo.isActive);
-        EXPECT_EQ(wlInfo.activeCount, 1);
+        EXPECT_EQ(wlInfo.activeCount, 2);
 
         wlB->release();
-        EXPECT_TRUE(waitForActiveCount(testLockName, 0))
+        EXPECT_TRUE(waitForNrActiveHolders(testLockName, 0))
             << "Timeout waiting for activeCount to reach 0 (retry: " << i << ")";
 
         wlStats = getWakelockStats();
         ASSERT_TRUE(findWakeLockInfoByName(wlStats, testLockName, &wlInfo));
         EXPECT_FALSE(wlInfo.isActive);
-        EXPECT_EQ(wlInfo.activeCount, 0);
+        EXPECT_EQ(wlInfo.activeCount, 2);
         EXPECT_EQ(wlInfo.activeTime, 0);
     }
 }
 
-// Tests for correctness of the wakelock active count, active status and active time when multiple
-// wakelocks of the same name are acquired and released sequentially.
+// Tests for correctness of the wakelock active holders, activeCount, active
+// statusand active time when multiple wakelocks of the same name are acquired
+// and released sequentially.
 // Order tested: Acq A -> Acq B -> Rel A -> Rel B.
-TEST_F(SystemSuspendTest, WakeLockStatsActiveCountDecrementCheck) {
+TEST_F(SystemSuspendTest, WakeLockStatsNrActiveHoldersDecrementCheck) {
     std::string testLockName = "testLock";
 
     std::shared_ptr<IWakeLock> wlA = acquireWakeLock(testLockName);
@@ -963,8 +966,8 @@ TEST_F(SystemSuspendTest, WakeLockStatsActiveCountDecrementCheck) {
 
     wlA->release();
     // Let the release operation complete.
-    EXPECT_TRUE(waitForActiveCount(testLockName, 1))
-            << "Timeout waiting for activeCount to reach 1";
+    EXPECT_TRUE(waitForNrActiveHolders(testLockName, 1))
+            << "Timeout waiting for nrActiveHolders to reach 1";
     // Sleep for 5ms to test activeTime update later.
     std::this_thread::sleep_for(5ms);
 
@@ -972,22 +975,23 @@ TEST_F(SystemSuspendTest, WakeLockStatsActiveCountDecrementCheck) {
     ASSERT_TRUE(findWakeLockInfoByName(wlStats, testLockName, &wlInfo));
     // wlB of the same name is yet to be released.
     EXPECT_TRUE(wlInfo.isActive);
-    EXPECT_EQ(wlInfo.activeCount, 1);
+    EXPECT_EQ(wlInfo.activeCount, 2);
     EXPECT_GE(wlInfo.activeTime, 5);
 
     wlB->release();
-    EXPECT_TRUE(waitForActiveCount(testLockName, 0))
-            << "Timeout waiting for activeCount to reach 0";
+    EXPECT_TRUE(waitForNrActiveHolders(testLockName, 0))
+            << "Timeout waiting for nrActiveHolders to reach 0";
 
     wlStats = getWakelockStats();
     ASSERT_TRUE(findWakeLockInfoByName(wlStats, testLockName, &wlInfo));
     EXPECT_FALSE(wlInfo.isActive);
-    EXPECT_EQ(wlInfo.activeCount, 0);
+    EXPECT_EQ(wlInfo.activeCount, 2);
     EXPECT_EQ(wlInfo.activeTime, 0);
 }
 
-// Tests for correctness of the wakelock active count, active status and active time when multiple
-// wakelocks are acquired and released sequentially.
+// Tests for correctness of the wakelock active holders, activeCount, active
+// status and active time when multiple wakelocks are acquired and released
+// sequentially.
 // Order tested: Acq A -> Acq B -> Rel B -> Rel A.
 TEST_F(SystemSuspendTest, WakeLockStatsAcquiredReleasedInLIFOOrder) {
     std::string testLockName = "testLock";
@@ -1011,8 +1015,8 @@ TEST_F(SystemSuspendTest, WakeLockStatsAcquiredReleasedInLIFOOrder) {
 
     wlB->release();
     // Let the release operation complete.
-    EXPECT_TRUE(waitForActiveCount(testLockName, 1))
-            << "Timeout waiting for activeCount to reach 1";
+    EXPECT_TRUE(waitForNrActiveHolders(testLockName, 1))
+            << "Timeout waiting for nrActiveHolders to reach 1";
     // Sleep for 5ms to test activeTime update later.
     std::this_thread::sleep_for(5ms);
 
@@ -1020,17 +1024,17 @@ TEST_F(SystemSuspendTest, WakeLockStatsAcquiredReleasedInLIFOOrder) {
     ASSERT_TRUE(findWakeLockInfoByName(wlStats, testLockName, &wlInfo));
     // wlB of the same name is yet to be released.
     EXPECT_TRUE(wlInfo.isActive);
-    EXPECT_EQ(wlInfo.activeCount, 1);
+    EXPECT_EQ(wlInfo.activeCount, 2);
     EXPECT_GE(wlInfo.activeTime, 5);
 
     wlA->release();
-    EXPECT_TRUE(waitForActiveCount(testLockName, 0))
-            << "Timeout waiting for activeCount to reach 0";
+    EXPECT_TRUE(waitForNrActiveHolders(testLockName, 0))
+            << "Timeout waiting for nrActiveHolders to reach 0";
 
     wlStats = getWakelockStats();
     ASSERT_TRUE(findWakeLockInfoByName(wlStats, testLockName, &wlInfo));
     EXPECT_FALSE(wlInfo.isActive);
-    EXPECT_EQ(wlInfo.activeCount, 0);
+    EXPECT_EQ(wlInfo.activeCount, 2);
     EXPECT_EQ(wlInfo.activeTime, 0);
 }
 
@@ -1329,7 +1333,7 @@ TEST_F(SystemSuspendSameThreadTest, GetNativeWakeLockStats) {
     WakeLockInfo nwlInfo;
     ASSERT_TRUE(findWakeLockInfoByName(wlStats, fakeWlName, &nwlInfo));
     ASSERT_EQ(nwlInfo.name, fakeWlName);
-    ASSERT_EQ(nwlInfo.activeCount, 0);
+    ASSERT_EQ(nwlInfo.activeCount, 1);
     ASSERT_GE(nwlInfo.maxTime, 1000);
     ASSERT_GE(nwlInfo.totalTime, 1000);
     ASSERT_EQ(nwlInfo.isActive, false);
@@ -1454,7 +1458,7 @@ TEST_P(ParameterizedSystemSuspendSameThreadTest, GetNativeAndKernelWakeLockStats
     WakeLockInfo nwlInfo;
     ASSERT_TRUE(findWakeLockInfoByName(wlStats, fakeNwlName, &nwlInfo));
     ASSERT_EQ(nwlInfo.name, fakeNwlName);
-    ASSERT_EQ(nwlInfo.activeCount, 0);
+    ASSERT_EQ(nwlInfo.activeCount, 1);
     ASSERT_GE(nwlInfo.maxTime, 1000);
     ASSERT_GE(nwlInfo.totalTime, 1000);
     ASSERT_EQ(nwlInfo.isActive, false);
@@ -2059,8 +2063,8 @@ class SystemSuspendDelayTest : public ::testing::TestWithParam<bool> {
         return std::move(stateServiceFd);
     }
 
-    // Wait for wakelock's active count to reach a certain value.
-    bool waitForActiveCount(
+    // Wait for wakelock's hold count to reach a certain value.
+    bool waitForNrActiveHolders(
         const std::string& wl_name, int expectedCount,
         std::chrono::milliseconds timeout = std::chrono::milliseconds(100),
         std::chrono::milliseconds pollingInterval = std::chrono::milliseconds(10)) {
@@ -2068,8 +2072,10 @@ class SystemSuspendDelayTest : public ::testing::TestWithParam<bool> {
         while (std::chrono::steady_clock::now() - start_time < timeout) {
             std::vector<WakeLockInfo> wlStats = getWakelockStats();
             WakeLockInfo wlInfo;
+
             if (findWakeLockInfoByName(wlStats, wl_name, &wlInfo) &&
-                wlInfo.activeCount == expectedCount) {
+                expectedCount == systemSuspend->getWakeLockEntryList()
+                                ->nrActiveHolders(wl_name, wlInfo.pid)) {
                 return true;
             }
             std::this_thread::sleep_for(pollingInterval);
@@ -2175,15 +2181,15 @@ TEST_P(SystemSuspendDelayFailedTest, SuspendFailedDelayTest) {
                           kSleepTimeConfig.baseSleepTime * kSleepTimeConfig.sleepTimeScaleFactor)
                     : 0ms;
 
-    waitForActiveCount(totalWakelockName, 0, 200ms);
+    waitForNrActiveHolders(totalWakelockName, 0, 200ms);
     auto startTotalTime = findWakelockTimeByName(totalWakelockName);
     auto startFailedTime = findWakelockTimeByName(failedWakelockName);
 
     suspendFor(100ms);
     if (flagEnabled) {
-        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 1))
+        EXPECT_TRUE(waitForNrActiveHolders(totalWakelockName, 1))
                 << "Timeout waiting for suspend delay wakelock to be active";
-        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 0, 200ms))
+        EXPECT_TRUE(waitForNrActiveHolders(totalWakelockName, 0, 200ms))
                 << "Timeout waiting for suspend delay wakelock to be inactive";
     }
 
@@ -2205,15 +2211,15 @@ TEST_P(SystemSuspendDelayTest, SuspendNormalDelayTest) {
         flagEnabled ? std::chrono::round<std::chrono::milliseconds>(kSleepTimeConfig.baseSleepTime)
                     : 0ms;
 
-    waitForActiveCount(totalWakelockName, 0, 200ms);
+    waitForNrActiveHolders(totalWakelockName, 0, 200ms);
     auto startTotalTime = findWakelockTimeByName(totalWakelockName);
     auto startNormalTime = findWakelockTimeByName(normalWakelockName);
 
     suspendFor(100ms);
     if (flagEnabled) {
-        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 1))
+        EXPECT_TRUE(waitForNrActiveHolders(totalWakelockName, 1))
                 << "Timeout waiting for suspend delay wakelock to be active";
-        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 0, 200ms))
+        EXPECT_TRUE(waitForNrActiveHolders(totalWakelockName, 0, 200ms))
                 << "Timeout waiting for suspend delay wakelock to be inactive";
     }
 
@@ -2238,15 +2244,15 @@ TEST_P(SystemSuspendDelayTest, SuspendShortDelayTest) {
                           kSleepTimeConfig.baseSleepTime * kSleepTimeConfig.sleepTimeScaleFactor)
                     : 0ms;
 
-    waitForActiveCount(totalWakelockName, 0, 200ms);
+    waitForNrActiveHolders(totalWakelockName, 0, 200ms);
     auto startTotalTime = findWakelockTimeByName(totalWakelockName);
     auto startShortTime = findWakelockTimeByName(shortWakelockName);
 
     suspendFor(10ms);
     if (flagEnabled) {
-        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 1))
+        EXPECT_TRUE(waitForNrActiveHolders(totalWakelockName, 1))
                 << "Timeout waiting for suspend delay wakelock to be active";
-        EXPECT_TRUE(waitForActiveCount(totalWakelockName, 0, 200ms))
+        EXPECT_TRUE(waitForNrActiveHolders(totalWakelockName, 0, 200ms))
                 << "Timeout waiting for suspend delay wakelock to be inactive";
     }
 

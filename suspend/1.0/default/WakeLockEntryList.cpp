@@ -203,6 +203,7 @@ void WakeLockEntryList::insertEntry(WakeLockInfo entry) {
 void WakeLockEntryList::deleteEntry(std::list<WakeLockInfo>::iterator entry) {
     auto key = std::make_pair(entry->name, entry->pid);
     mLookupTable.erase(key);
+    mNrActiveHolders.erase(key);
     mStats.erase(entry);
 }
 
@@ -566,9 +567,11 @@ void WakeLockEntryList::updateOnAcquire(const std::string& name, int pid) {
         evictIfFull();
         WakeLockInfo newEntry = createNativeEntry(name, pid, timeNow);
         insertEntry(newEntry);
+        mNrActiveHolders[key] = 1;
     } else {
         auto staleEntry = it->second;
         WakeLockInfo updatedEntry = *staleEntry;
+        int updatedCount;
 
         // Update entry
         updatedEntry.isActive = true;
@@ -576,7 +579,9 @@ void WakeLockEntryList::updateOnAcquire(const std::string& name, int pid) {
         updatedEntry.activeCount++;
         updatedEntry.lastChange = timeNow;
 
+        updatedCount = mNrActiveHolders[key] + 1;
         deleteEntry(staleEntry);
+        mNrActiveHolders[key] = updatedCount;
         insertEntry(std::move(updatedEntry));
     }
 }
@@ -594,23 +599,26 @@ void WakeLockEntryList::updateOnRelease(const std::string& name, int pid) {
     } else {
         auto staleEntry = it->second;
         WakeLockInfo updatedEntry = *staleEntry;
+        int updatedCount;
 
         // Update entry
         TimestampType timeDelta = timeNow - updatedEntry.lastChange;
-        if (updatedEntry.activeCount > 0) {
-            updatedEntry.activeCount--;
+        if (mNrActiveHolders[key] > 0) {
+            mNrActiveHolders[key]--;
         } else {
-            LOG(ERROR) << "WakeLock Stats: Active count attempted to go below zero for "
+            LOG(ERROR) << "WakeLock Stats: Hold count attempted to go below zero for "
                        << "wakelock \"" << name << "\". This is unexpected.";
         }
-        updatedEntry.isActive = (updatedEntry.activeCount > 0);
+        updatedEntry.isActive = (mNrActiveHolders[key] > 0);
         updatedEntry.activeTime += timeDelta;
         updatedEntry.maxTime = std::max(updatedEntry.maxTime, updatedEntry.activeTime);
         updatedEntry.activeTime = updatedEntry.isActive ? updatedEntry.activeTime : 0;
         updatedEntry.totalTime += timeDelta;
         updatedEntry.lastChange = timeNow;
 
+        updatedCount = mNrActiveHolders[key];
         deleteEntry(staleEntry);
+        mNrActiveHolders[key] = updatedCount;
         insertEntry(std::move(updatedEntry));
     }
 }
@@ -619,6 +627,7 @@ void WakeLockEntryList::clear() {
     std::lock_guard<std::mutex> lock(mLock);
     mStats.clear();
     mLookupTable.clear();
+    mNrActiveHolders.clear();
 }
 
 /**
@@ -650,6 +659,15 @@ void WakeLockEntryList::getWakeLockStats(int wakeLockInfoFieldBitMask,
         }
     }
     getKernelWakelockStats(wakeLockInfoFieldBitMask, aidl_return);
+}
+
+int WakeLockEntryList::nrActiveHolders(const std::string& name, int pid) {
+    std::lock_guard<std::mutex> lock(mLock);
+    auto key = std::make_pair(name, pid);
+    if (mNrActiveHolders.find(key) != mNrActiveHolders.end()) {
+        return mNrActiveHolders[key];
+    }
+    return 0;
 }
 
 }  // namespace V1_0
