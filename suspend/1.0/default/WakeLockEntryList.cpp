@@ -166,9 +166,7 @@ void WakeLockEntryList::evictIfFull() {
     if (mStats.size() == mCapacity) {
         auto evictIt = mStats.end();
         std::advance(evictIt, -1);
-        auto evictKey = std::make_pair(evictIt->name, evictIt->pid);
-        mLookupTable.erase(evictKey);
-        mStats.erase(evictIt);
+        deleteEntry(evictIt);
 
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
         long long secondsSinceLastLog =
@@ -205,7 +203,29 @@ void WakeLockEntryList::insertEntry(WakeLockInfo entry) {
 void WakeLockEntryList::deleteEntry(std::list<WakeLockInfo>::iterator entry) {
     auto key = std::make_pair(entry->name, entry->pid);
     mLookupTable.erase(key);
+    mNrActiveHolders.erase(key);
     mStats.erase(entry);
+}
+
+/**
+ * Updates entry from stats list while accounting for MRU and other bookkeeping
+ */
+void WakeLockEntryList::updateEntry(WakeLockInfo updatedEntry,
+                                std::list<WakeLockInfo>::iterator staleEntry) {
+    if (updatedEntry.name != staleEntry->name ||
+        updatedEntry.pid != staleEntry->pid) {
+        LOG(ERROR) << "WakeLock Stats: updatedEntry (" << updatedEntry.name <<
+                    ", " << updatedEntry.pid << ") is not the same staleEntry ("
+                         << staleEntry->name << ", " << staleEntry->pid << ")";
+        return;
+    }
+    auto key = std::make_pair(staleEntry->name, staleEntry->pid);
+    int updatedCount = mNrActiveHolders[key];
+
+    // mNrActiveHolders[key] should not be reset on an update, so save its value
+    deleteEntry(staleEntry);
+    mNrActiveHolders[key] = updatedCount;
+    insertEntry(std::move(updatedEntry));
 }
 
 /**
@@ -568,6 +588,7 @@ void WakeLockEntryList::updateOnAcquire(const std::string& name, int pid) {
         evictIfFull();
         WakeLockInfo newEntry = createNativeEntry(name, pid, timeNow);
         insertEntry(newEntry);
+        mNrActiveHolders[key] = 1;
     } else {
         auto staleEntry = it->second;
         WakeLockInfo updatedEntry = *staleEntry;
@@ -577,9 +598,9 @@ void WakeLockEntryList::updateOnAcquire(const std::string& name, int pid) {
         updatedEntry.activeTime = 0;
         updatedEntry.activeCount++;
         updatedEntry.lastChange = timeNow;
+        mNrActiveHolders[key]++;
 
-        deleteEntry(staleEntry);
-        insertEntry(std::move(updatedEntry));
+        updateEntry(std::move(updatedEntry), staleEntry);
     }
 }
 
@@ -599,23 +620,30 @@ void WakeLockEntryList::updateOnRelease(const std::string& name, int pid) {
 
         // Update entry
         TimestampType timeDelta = timeNow - updatedEntry.lastChange;
-        if (updatedEntry.activeCount > 0) {
-            updatedEntry.activeCount--;
+        if (mNrActiveHolders[key] > 0) {
+            mNrActiveHolders[key]--;
         } else {
-            LOG(ERROR) << "WakeLock Stats: Active count attempted to go below zero for "
+            LOG(ERROR) << "WakeLock Stats: Hold count attempted to go below zero for "
                        << "wakelock \"" << name << "\". This is unexpected.";
         }
-        updatedEntry.isActive = (updatedEntry.activeCount > 0);
+        updatedEntry.isActive = (mNrActiveHolders[key] > 0);
         updatedEntry.activeTime += timeDelta;
         updatedEntry.maxTime = std::max(updatedEntry.maxTime, updatedEntry.activeTime);
         updatedEntry.activeTime = updatedEntry.isActive ? updatedEntry.activeTime : 0;
         updatedEntry.totalTime += timeDelta;
         updatedEntry.lastChange = timeNow;
 
-        deleteEntry(staleEntry);
-        insertEntry(std::move(updatedEntry));
+        updateEntry(std::move(updatedEntry), staleEntry);
     }
 }
+
+void WakeLockEntryList::clear() {
+    std::lock_guard<std::mutex> lock(mLock);
+    mStats.clear();
+    mLookupTable.clear();
+    mNrActiveHolders.clear();
+}
+
 /**
  * Updates the native wakelock stats based on the current time.
  */
@@ -645,6 +673,15 @@ void WakeLockEntryList::getWakeLockStats(int wakeLockInfoFieldBitMask,
         }
     }
     getKernelWakelockStats(wakeLockInfoFieldBitMask, aidl_return);
+}
+
+int WakeLockEntryList::nrActiveHolders(const std::string& name, int pid) {
+    std::lock_guard<std::mutex> lock(mLock);
+    auto key = std::make_pair(name, pid);
+    if (mNrActiveHolders.find(key) != mNrActiveHolders.end()) {
+        return mNrActiveHolders[key];
+    }
+    return 0;
 }
 
 }  // namespace V1_0

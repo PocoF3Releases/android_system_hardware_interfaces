@@ -51,12 +51,17 @@ class WakeLockEntryList {
     void updateNow();
     void getWakeLockStats(int wakeLockInfoFieldBitMask,
                           std::vector<WakeLockInfo>* aidl_return) const;
+    int nrActiveHolders(const std::string& name, int pid);
+    void clear();
     friend std::ostream& operator<<(std::ostream& out, const WakeLockEntryList& list);
 
    private:
     void evictIfFull() REQUIRES(mLock);
     void insertEntry(WakeLockInfo entry) REQUIRES(mLock);
     void deleteEntry(std::list<WakeLockInfo>::iterator entry) REQUIRES(mLock);
+    void updateEntry(WakeLockInfo updatedEntry,
+                     std::list<WakeLockInfo>::iterator staleEntry)
+            REQUIRES(mLock);
     WakeLockInfo createNativeEntry(const std::string& name, int pid, TimestampType timeNow) const;
     WakeLockInfo createKernelEntry(const std::string& name) const;
 
@@ -152,6 +157,8 @@ class WakeLockEntryList {
     std::list<WakeLockInfo> mStats GUARDED_BY(mLock);
     std::unordered_map<std::pair<std::string, int>, std::list<WakeLockInfo>::iterator, LockHash>
         mLookupTable GUARDED_BY(mLock);
+    // Map to track the live hold count for each wakelock.
+    std::unordered_map<std::pair<std::string, int>, int, LockHash> mNrActiveHolders GUARDED_BY(mLock);
 };
 
 }  // namespace V1_0
