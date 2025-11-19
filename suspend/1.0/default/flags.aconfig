@@ -28,3 +28,10 @@ flag {
   description: "Collects additional information about suspend state"
   bug: "447090331"
 }
+
+flag {
+  name: "enable_pm_fs_abort"
+  namespace: "android_systems_team"
+  description: "Enables fs_sync abort during suspend"
+  bug: "315272811"
+}

@@ -1281,6 +1281,7 @@ class mock_flag_provider_interface : public suspend_service::flags::flag_provide
     MOCK_METHOD(bool, fast_kernel_wakelock_reporting_v2, (), (override));
     MOCK_METHOD(bool, suspend_backoff_observability, (), (override));
     MOCK_METHOD(bool, extended_suspend_info, (), (override));
+    MOCK_METHOD(bool, enable_pm_fs_abort, (), (override));
 };
 
 enum class KernelWakeLockFdType { Uncached, CachedV1, CachedV2 };

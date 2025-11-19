@@ -50,9 +50,11 @@ using ::android::base::ParseUint;
 using ::android::base::ReadFdToString;
 using ::android::base::StringPrintf;
 using ::android::base::WriteStringToFd;
+using ::android::base::WriteStringToFile;
 using ::std::string;
 using suspend_service::flags::suspend_backoff_observability;
 using suspend_service::flags::extended_suspend_info;
+using suspend_service::flags::enable_pm_fs_abort;
 
 using ISCSI = ::android::system::suspend::internal::ISuspendControlServiceInternal;
 
@@ -73,6 +75,7 @@ static constexpr char kSysPowerWakeLock[] = "/sys/power/wake_lock";
 static constexpr char kSysPowerWakeUnlock[] = "/sys/power/wake_unlock";
 static constexpr char kUnknownWakeup[] = "unknown";
 static constexpr char kUserspaceAbort[] = "userspace-abort";
+static constexpr char kSysModuleSuspendPmFsAbort[] = "/sys/module/suspend/parameters/pm_fs_abort";
 // This is used to disable autosuspend when zygote is restarted
 // it allows the system to make progress before autosuspend is kicked
 // NOTE: If the name of this wakelock is changed then also update the name
@@ -185,6 +188,12 @@ SystemSuspend::SystemSuspend(unique_fd wakeupCountFd, unique_fd stateFd, unique_
     // in case the service crashed and left it locked.
     if (mWakeUnlockFd > 0) {
         WriteStringToFd(kUserspaceAbort, mWakeUnlockFd);
+    }
+
+    if (enable_pm_fs_abort()) {
+        if (!WriteStringToFile("Y", kSysModuleSuspendPmFsAbort)) {
+            PLOG(ERROR) << "Error writing to " << kSysModuleSuspendPmFsAbort;
+        }
     }
 }
 
