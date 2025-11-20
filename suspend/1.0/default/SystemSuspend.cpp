@@ -195,6 +195,12 @@ SystemSuspend::SystemSuspend(unique_fd wakeupCountFd, unique_fd stateFd, unique_
             PLOG(ERROR) << "Error writing to " << kSysModuleSuspendPmFsAbort;
         }
     }
+
+    if (extended_suspend_info()) {
+        mSuspendInfo.breakEvenMillis =
+            std::chrono::round<std::chrono::milliseconds>(kSleepTimeConfig.shortSuspendThreshold)
+                .count();
+    }
 }
 
 bool SystemSuspend::enableAutosuspend(const sp<IBinder>& token) {

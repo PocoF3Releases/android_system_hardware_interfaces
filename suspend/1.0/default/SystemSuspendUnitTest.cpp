@@ -1635,6 +1635,7 @@ class SuspendWakeupTest : public ::testing::TestWithParam<bool> {
         ASSERT_EQ(actual.newBadSuspends, expected.newBadSuspends);
         ASSERT_EQ(actual.earlyRecoveryBadSuspends, expected.earlyRecoveryBadSuspends);
         ASSERT_EQ(actual.maxBackoffContinuations, expected.maxBackoffContinuations);
+        ASSERT_EQ(actual.breakEvenMillis, expected.breakEvenMillis);
     }
 
     unique_fd wakeupCountServiceFd;
@@ -1677,6 +1678,7 @@ TEST_P(SuspendWakeupTest, LongSuspendStat) {
     expected.sleepTimeMillis = kSleepTimeConfig.baseSleepTime.count();
     if (flagEnabled){
         expected.suspendDurationMillisBins = {0, 0, 0, 0, 1, 0};
+        expected.breakEvenMillis = kSleepTimeConfig.shortSuspendThreshold.count();
     }
     checkSuspendInfo(expected);
 }
@@ -1695,6 +1697,7 @@ TEST_P(SuspendWakeupTest, ShortSuspendStat) {
     if (flagEnabled) {
         expected.newBadSuspends = 1;
         expected.suspendDurationMillisBins = {1, 0, 0, 0, 0, 0};
+        expected.breakEvenMillis = kSleepTimeConfig.shortSuspendThreshold.count();
     }
     checkSuspendInfo(expected);
 }
@@ -1714,6 +1717,7 @@ TEST_P(SuspendWakeupTest, ShortSuspendBackoffStat) {
     if (flagEnabled) {
         expected.newBadSuspends = 1;
         expected.suspendDurationMillisBins = {2, 0, 0, 0, 0, 0};
+        expected.breakEvenMillis = kSleepTimeConfig.shortSuspendThreshold.count();
     }
     checkSuspendInfo(expected);
 }
@@ -1733,6 +1737,7 @@ TEST_P(SuspendWakeupTest, ShortSuspendBackoffContinueStat) {
     if (flagEnabled) {
         expected.newBadSuspends = 1;
         expected.suspendDurationMillisBins = {2, 0, 0, 0, 0, 0};
+        expected.breakEvenMillis = kSleepTimeConfig.shortSuspendThreshold.count();
     }
     checkSuspendInfo(expected);
 
@@ -1750,6 +1755,7 @@ TEST_P(SuspendWakeupTest, ShortSuspendBackoffContinueStat) {
             .count();
     if (flagEnabled) {
         expected.suspendDurationMillisBins = {3, 0, 0, 0, 0, 0};
+        expected.breakEvenMillis = kSleepTimeConfig.shortSuspendThreshold.count();
     }
     checkSuspendInfo(expected);
 }
@@ -1791,6 +1797,7 @@ TEST_P(SuspendWakeupTest, MaxBackoffContinuationStat) {
         expected.newBadSuspends = 1;
         expected.maxBackoffContinuations = 2;
         expected.suspendDurationMillisBins = {6, 0, 0, 0, 0, 0};
+        expected.breakEvenMillis = kSleepTimeConfig.shortSuspendThreshold.count();
     }
 
     checkSuspendInfo(expected);
@@ -1829,6 +1836,7 @@ TEST_P(SuspendWakeupTest, ConsecutiveBadSuspendHistogramStat) {
         expected.suspendDurationMillisBins = {3, 0, 0, 0, 2, 0};
         expected.consecutiveBadSuspendBins = {1, 1, 0, 0, 0};
         expected.newBadSuspends = 2;
+        expected.breakEvenMillis = kSleepTimeConfig.shortSuspendThreshold.count();
     }
 
     checkSuspendInfo(expected);
