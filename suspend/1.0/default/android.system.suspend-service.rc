@@ -4,5 +4,5 @@ service system_suspend /system/bin/hw/android.system.suspend-service
     group system wakelock
     capabilities BLOCK_SUSPEND
 
-on init
+on init && property:ro.board.api_level=202604
     chown system system /sys/module/suspend/parameters/pm_fs_abort
