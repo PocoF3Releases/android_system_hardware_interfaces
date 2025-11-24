@@ -82,4 +82,11 @@ parcelable SuspendInfo {
      * a good suspend before the backoff threshold was reached.
      */
     long earlyRecoveryBadSuspends = 0;
+
+    /**
+     * The minimum duration the system must remain successfully suspended to
+     * compensate for the energy cost of entering and exiting the suspend state,
+     * beyond which net power savings are achieved.
+     */
+    long breakEvenMillis = 0;
 }

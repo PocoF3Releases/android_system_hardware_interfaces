@@ -143,4 +143,14 @@ enum AudioUsage {
      * transducers and free them of deposits of dust or water
      */
     SPEAKER_CLEANUP = 1004,
+    /**
+     * Usage value to use when a system application plays a notification
+     * vibration where the physical vibration is augmented with an auditory cue.
+     */
+    NOTIFICATION_VIBRATION = 1005,
+    /**
+     * Usage value to use when a system application plays a ringtone
+     * vibration where the physical vibration is augmented with an auditory cue.
+     */
+    RINGTONE_VIBRATION = 1006,
 }
