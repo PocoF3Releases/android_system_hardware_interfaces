@@ -146,4 +146,10 @@ enum ResponseCode {
      * Indicates that an app has an excessive number of Android Keystore keys.
      */
     TOO_MANY_APP_KEYS = 29,
+
+    /**
+     * Indicates that an app (that targets SDK 37 or higher) has an excessive number of Android
+     * Keystore keys.
+     */
+    TOO_MANY_APP_KEYS_SDK37 = 30,
 }
