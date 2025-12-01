@@ -31,7 +31,7 @@ flag {
 
 flag {
   name: "enable_pm_fs_abort"
-  namespace: "android_systems_team"
+  namespace: "kernel_memory_management"
   description: "Enables fs_sync abort during suspend"
   bug: "315272811"
 }
