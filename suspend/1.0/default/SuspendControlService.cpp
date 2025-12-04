@@ -20,6 +20,7 @@
 #include <android-base/stringprintf.h>
 #include <bpf/bpf.h>
 #include <bpf_kernelwakelockduration.h>
+#include <suspend_service_flags.h>
 #include <linux/bpf.h>
 #include <signal.h>
 #include <time.h>
@@ -30,6 +31,7 @@
 
 using ::android::base::Result;
 using ::android::base::StringPrintf;
+using suspend_service::flags::extended_suspend_info;
 
 namespace android {
 namespace system {
@@ -438,6 +440,25 @@ status_t SuspendControlServiceInternal::dump(int fd, const Vector<String16>& arg
         suspendInfo << "backoff continuations: " << info.backoffContinueCount << std::endl;
         suspendInfo << "total sleep time between suspends: " << info.sleepTimeMillis << " ms"
                     << std::endl;
+        if (extended_suspend_info()) {
+            suspendInfo << "suspend duration bins: [ ";
+            for (const auto& val : info.suspendDurationMillisBins) {
+                suspendInfo << val << " ";
+            }
+            suspendInfo << "]" << std::endl;
+            suspendInfo << "consecutive bad suspend bins: [ ";
+            for (const auto& val : info.consecutiveBadSuspendBins) {
+                suspendInfo << val << " ";
+            }
+            suspendInfo << "]" << std::endl;
+            suspendInfo << "max backoff continuations: " << info.maxBackoffContinuations
+                        << std::endl;
+            suspendInfo << "new bad suspends: " << info.newBadSuspends << std::endl;
+            suspendInfo << "early recovery bad suspends: " << info.earlyRecoveryBadSuspends
+                        << std::endl;
+            suspendInfo << "break even duration: " << info.breakEvenMillis << " ms"
+                        << std::endl;
+        }
         dprintf(fd, "Suspend Info:\n%s\n", suspendInfo.str().c_str());
     }
 
