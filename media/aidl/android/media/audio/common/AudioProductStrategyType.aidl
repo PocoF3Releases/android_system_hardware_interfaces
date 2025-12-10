@@ -84,4 +84,20 @@ enum AudioProductStrategyType {
      * the system or accept it from the system.
      */
     SYS_RESERVED_CALL_ASSISTANT = 9,
+    /**
+     * Strategy corresponding to call assistant usages.
+     *
+     * Was initially defined by mistake as reserved for the system.
+     */
+    CALL_ASSISTANT = SYS_RESERVED_CALL_ASSISTANT,
+    /**
+     * Strategy corresponding to raw audio patches
+     * Value reserved for system use only. HALs must never return this value to
+     * the system or accept it from the system.
+     */
+    SYS_RESERVED_PATCH = 10,
+    /**
+     * Strategy corresponding to assistant usages.
+     */
+    ASSISTANT = 11,
 }
