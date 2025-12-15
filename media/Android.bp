@@ -88,8 +88,6 @@ aidl_interface {
         "aidl/android/media/audio/common/ExtraAudioDescriptor.aidl",
         "aidl/android/media/audio/common/Float.aidl",
         "aidl/android/media/audio/common/Double.aidl",
-        "aidl/android/media/audio/common/FlushFromFrameAccuracy.aidl",
-        "aidl/android/media/audio/common/FlushFromFrameSupport.aidl",
         "aidl/android/media/audio/common/HeadTracking.aidl",
         "aidl/android/media/audio/common/Int.aidl",
         "aidl/android/media/audio/common/Long.aidl",
