@@ -1668,7 +1668,7 @@ class SuspendWakeupTest : public ::testing::TestWithParam<bool> {
 };
 
 TEST_P(SuspendWakeupTest, LongSuspendStat) {
-    bool flagEnabled = GetParam();
+    bool flagEnabled = suspend_service::flags::extended_suspend_info();
     suspendFor(std::chrono::milliseconds(kLongSuspendMillis),
                std::chrono::milliseconds(kSuspendOverheadMillis), 1);
     SuspendInfo expected;
@@ -1684,7 +1684,7 @@ TEST_P(SuspendWakeupTest, LongSuspendStat) {
 }
 
 TEST_P(SuspendWakeupTest, ShortSuspendStat) {
-    bool flagEnabled = GetParam();
+    bool flagEnabled = suspend_service::flags::extended_suspend_info();
     suspendFor(std::chrono::milliseconds(kShortSuspendMillis),
                std::chrono::milliseconds(kSuspendOverheadMillis), 1);
     SuspendInfo expected;
@@ -1703,7 +1703,7 @@ TEST_P(SuspendWakeupTest, ShortSuspendStat) {
 }
 
 TEST_P(SuspendWakeupTest, ShortSuspendBackoffStat) {
-    bool flagEnabled = GetParam();
+    bool flagEnabled = suspend_service::flags::extended_suspend_info();
     suspendFor(std::chrono::milliseconds(kShortSuspendMillis),
                std::chrono::milliseconds(kSuspendOverheadMillis), 2);
     SuspendInfo expected;
@@ -1723,7 +1723,7 @@ TEST_P(SuspendWakeupTest, ShortSuspendBackoffStat) {
 }
 
 TEST_P(SuspendWakeupTest, ShortSuspendBackoffContinueStat) {
-    bool flagEnabled = GetParam();
+    bool flagEnabled = suspend_service::flags::extended_suspend_info();
     suspendFor(std::chrono::milliseconds(kShortSuspendMillis),
                std::chrono::milliseconds(kSuspendOverheadMillis), 2);
     SuspendInfo expected;
@@ -1761,7 +1761,7 @@ TEST_P(SuspendWakeupTest, ShortSuspendBackoffContinueStat) {
 }
 
 TEST_P(SuspendWakeupTest, MaxBackoffContinuationStat) {
-    bool flagEnabled = GetParam();
+    bool flagEnabled = suspend_service::flags::extended_suspend_info();
     suspendFor(std::chrono::milliseconds(kShortSuspendMillis),
                std::chrono::milliseconds(kSuspendOverheadMillis), 6);
 
@@ -1804,7 +1804,7 @@ TEST_P(SuspendWakeupTest, MaxBackoffContinuationStat) {
 }
 
 TEST_P(SuspendWakeupTest, ConsecutiveBadSuspendHistogramStat) {
-    bool flagEnabled = GetParam();
+    bool flagEnabled = suspend_service::flags::extended_suspend_info();
     // First sequence: 1 bad suspend, then a good one -> sample of 2
     suspendFor(std::chrono::milliseconds(kShortSuspendMillis),
                std::chrono::milliseconds(kSuspendOverheadMillis), 1);
