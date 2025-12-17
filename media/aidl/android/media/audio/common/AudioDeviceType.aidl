@@ -117,6 +117,22 @@ enum AudioDeviceType {
      */
     IN_BUS = IN_DEVICE,
     /**
+     * A device corresponding to the receive path in an Android implementation
+     * operating in a Bluetooth audio peripheral mode (LE Audio, A2DP or HFP profiles).
+     * Connection type must be CONNECTION_BT_LE, CONNECTION_BT_A2DP or CONNECTION_BT_SCO.
+     * The name "CENTRAL" refer to the role of the remote unit this audio device
+     * represents.
+     */
+    IN_CENTRAL_DEVICE = 16,
+    /**
+     * A device corresponding to the receive path in an Android implementation
+     * operating in a Bluetooth LE audio peripheral mode part of a broadcast group.
+     * The name "CENTRAL" refer to the role of the remote unit this audio device
+     * represents.
+     * Connection type must be CONNECTION_BT_LE.
+     */
+    IN_CENTRAL_BROADCAST_DEVICE = 17,
+    /**
      * The "default" device is used when the client does not have any
      * preference for a particular device.
      */
@@ -204,4 +220,12 @@ enum AudioDeviceType {
      * multichannel contents.
      */
     OUT_MULTICHANNEL_GROUP = 147,
+    /**
+     * A device corresponding to the transmit path in an Android implementation
+     * operating in a Bluetooth audio peripheral mode (LE Audio, A2DP or HFP profiles).
+     * Connection type must be CONNECTION_BT_LE, CONNECTION_BT_A2DP or CONNECTION_BT_SCO.
+     * The name "CENTRAL" refer to the role of the remote unit this audio device
+     * represents.
+     */
+    OUT_CENTRAL_DEVICE = 148,
 }
