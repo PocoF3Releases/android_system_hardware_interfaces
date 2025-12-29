@@ -40,7 +40,10 @@ union AudioChannelLayout {
   int indexMask;
   int layoutMask;
   int voiceMask;
-  android.media.audio.common.AudioChannelLayout.Ambisonics acnMask;
+  int acnMask;
+  const int ACN_CHANNEL_COUNT_BIT_MASK = ((1 << 8) - 1) /* 255 */;
+  const int ACN_SOURCE_LAYOUT_BIT_SHIFT = 8;
+  const int ACN_SOURCE_LAYOUT_BIT_MASK = (((1 << 4) - 1) << ACN_SOURCE_LAYOUT_BIT_SHIFT) /* 3840 */;
   const int INDEX_MASK_1 = ((1 << 1) - 1) /* 1 */;
   const int INDEX_MASK_2 = ((1 << 2) - 1) /* 3 */;
   const int INDEX_MASK_3 = ((1 << 3) - 1) /* 7 */;
@@ -134,8 +137,6 @@ union AudioChannelLayout {
   const int CHANNEL_VOICE_UPLINK = 0x4000;
   const int CHANNEL_VOICE_DNLINK = 0x8000;
   parcelable Ambisonics {
-    int channelCount;
-    android.media.audio.common.AudioChannelLayout.Ambisonics.SourceLayout layout = android.media.audio.common.AudioChannelLayout.Ambisonics.SourceLayout.FULL_SPHERE;
     const byte MIN_ORDER = 0;
     const byte MAX_ORDER = 14;
     const int FULL_SPHERE_CHANNEL_COUNT_ORDER_0 = 1;
