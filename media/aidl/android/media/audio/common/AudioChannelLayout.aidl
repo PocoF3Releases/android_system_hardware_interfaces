@@ -92,6 +92,8 @@ union AudioChannelLayout {
     /**
      * Describes Ambisonics channel mask. Android uses ACN channel numbering
      * and SN3D normalization.
+     *
+     * Note: this parcelable is used for namespacing only.
      */
     parcelable Ambisonics {
         /**
@@ -163,13 +165,6 @@ union AudioChannelLayout {
          */
         const int MAX_CHANNEL_COUNT = FULL_SPHERE_CHANNEL_COUNT_ORDER_14;
         /**
-         * Specifies the number of source channels, for example the number of
-         * channels in a stream or in a file. The value must be in the range
-         * from 'MIN_CHANNEL_COUNT' to 'MAX_CHANNEL_COUNT', and depending on the
-         * layout must be one of the corresponding constants.
-         */
-        int channelCount;
-        /**
          * Defines the layout of the Ambisonics channels. Currently only two layouts
          * are allowed:
          *  - FULL_SPHERE is the full periphony set, using (N + 1) ^ 2 channels,
@@ -181,13 +176,37 @@ union AudioChannelLayout {
             FULL_SPHERE = 0,
             HORIZONTAL = 1,
         }
-        SourceLayout layout = SourceLayout.FULL_SPHERE;
     }
     /**
       * This variant is used to represent Ambisonics channel masks in the ACN
       * channel order and SN3D normalization, according to ITU-R BS.2076-3.
+      *
+      * This is a packed integer with the following structure:
+      *  - bits 0..7  store the channel count
+      *  - bits 8..11 store the layout information
+      *
+      * The channel count part specifies the number of source channels, for
+      * example the number of channels in a stream or in a file. The value must
+      * be in the range from 'Ambisonics.MIN_CHANNEL_COUNT' to
+      * 'Ambisonics.MAX_CHANNEL_COUNT', and depending on the layout must be one
+      * of the corresponding constants.
+      *
+      * The layout must be one of 'Ambisonics.SourceLayout' values.
       */
-    Ambisonics acnMask;
+    int acnMask;
+
+    /**
+     * Bit mask used for extracting the channel count part from 'acnMask'.
+     */
+    const int ACN_CHANNEL_COUNT_BIT_MASK = (1 << 8) - 1;
+    /**
+     * Bit shift of the layout part from 'acnMask'.
+     */
+    const int ACN_SOURCE_LAYOUT_BIT_SHIFT = 8;
+    /**
+     * Bit mask used for extracting the layout part from 'acnMask'.
+     */
+    const int ACN_SOURCE_LAYOUT_BIT_MASK = ((1 << 4) - 1) << ACN_SOURCE_LAYOUT_BIT_SHIFT;
 
     /**
      * 'INDEX_MASK_*' constants define how many channels are used.
