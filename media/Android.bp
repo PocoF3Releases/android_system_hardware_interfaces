@@ -124,6 +124,7 @@ aidl_interface {
             apex_available: [
                 "//apex_available:platform",
                 "com.android.bt",
+                "com.android.media",
             ],
         },
         rust: {
