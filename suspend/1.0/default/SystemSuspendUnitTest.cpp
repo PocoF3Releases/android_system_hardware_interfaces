@@ -2185,6 +2185,15 @@ INSTANTIATE_TEST_SUITE_P(SystemSuspendDelayFailedTest, SystemSuspendDelayFailedT
 
 TEST_P(SystemSuspendDelayFailedTest, SuspendFailedDelayTest) {
     bool flagEnabled = GetParam();
+    bool actualFlagState = suspend_service::flags::suspend_backoff_observability();
+
+    if (flagEnabled != actualFlagState) {
+        GTEST_SKIP() << "Skipping test for intended flag state " << flagEnabled
+                     << " because the actual flag state on this target is " << actualFlagState
+                     << " and cannot be overridden.";
+        return;
+    }
+
     auto backoffDelayDuration =
         flagEnabled ? std::chrono::round<std::chrono::milliseconds>(
                           kSleepTimeConfig.baseSleepTime * kSleepTimeConfig.sleepTimeScaleFactor)
@@ -2216,6 +2225,15 @@ TEST_P(SystemSuspendDelayFailedTest, SuspendFailedDelayTest) {
 
 TEST_P(SystemSuspendDelayTest, SuspendNormalDelayTest) {
     bool flagEnabled = GetParam();
+    bool actualFlagState = suspend_service::flags::suspend_backoff_observability();
+
+    if (flagEnabled != actualFlagState) {
+        GTEST_SKIP() << "Skipping test for intended flag state " << flagEnabled
+                     << " because the actual flag state on this target is " << actualFlagState
+                     << " and cannot be overridden.";
+        return;
+    }
+
     auto backoffDelayDuration =
         flagEnabled ? std::chrono::round<std::chrono::milliseconds>(kSleepTimeConfig.baseSleepTime)
                     : 0ms;
@@ -2248,6 +2266,15 @@ TEST_P(SystemSuspendDelayTest, SuspendNormalDelayTest) {
 
 TEST_P(SystemSuspendDelayTest, SuspendShortDelayTest) {
     bool flagEnabled = GetParam();
+    bool actualFlagState = suspend_service::flags::suspend_backoff_observability();
+
+    if (flagEnabled != actualFlagState) {
+        GTEST_SKIP() << "Skipping test for intended flag state " << flagEnabled
+                     << " because the actual flag state on this target is " << actualFlagState
+                     << " and cannot be overridden.";
+        return;
+    }
+
     auto backoffDelayDuration =
         flagEnabled ? std::chrono::round<std::chrono::milliseconds>(
                           kSleepTimeConfig.baseSleepTime * kSleepTimeConfig.sleepTimeScaleFactor)
