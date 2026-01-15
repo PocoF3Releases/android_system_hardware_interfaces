@@ -148,11 +148,15 @@ aidl_interface {
             version: "4",
             imports: [],
         },
+        {
+            version: "5",
+            imports: [],
+        },
 
         // IMPORTANT: Update latest_android_media_audio_common_types every time
         // you add the latest frozen version to versions_with_info
     ],
-    frozen: false,
+    frozen: true,
 
 }
 
@@ -287,9 +291,13 @@ aidl_interface {
             version: "3",
             imports: ["android.media.audio.common.types-V4"],
         },
+        {
+            version: "4",
+            imports: ["android.media.audio.common.types-V5"],
+        },
 
     ],
-    frozen: false,
+    frozen: true,
 
 }
 
@@ -397,12 +405,17 @@ aidl_interface {
     imports: [
         latest_android_media_audio_common_types,
     ],
-    frozen: false,
+    frozen: true,
     versions_with_info: [
         {
             version: "1",
             imports: ["android.media.audio.common.types-V4"],
         },
+        {
+            version: "2",
+            imports: ["android.media.audio.common.types-V5"],
+        },
+
     ],
 
 }
