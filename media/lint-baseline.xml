@@ -67,4 +67,26 @@
             column="36"/>
     </issue>
 
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 29): `android.os.Parcel#writeFixedArray`"
+        errorLine1="        _aidl_parcel.writeFixedArray(getHeadToStage(), _aidl_flag, 6);"
+        errorLine2="                     ~~~~~~~~~~~~~~~">
+        <location
+            file="out/soong/.intermediates/system/hardware/interfaces/media/android.media.audio.common.types-V6-java-source/gen/android/media/audio/common/HeadTracking.java"
+            line="193"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 33 (current min is 29): `android.os.Parcel#createFixedArray`"
+        errorLine1="        _aidl_value = _aidl_parcel.createFixedArray(float[].class, 6);"
+        errorLine2="                                   ~~~~~~~~~~~~~~~~">
+        <location
+            file="out/soong/.intermediates/system/hardware/interfaces/media/android.media.audio.common.types-V6-java-source/gen/android/media/audio/common/HeadTracking.java"
+            line="204"
+            column="36"/>
+    </issue>
+
 </issues>
