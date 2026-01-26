@@ -145,6 +145,7 @@ class WakeLockEntryList {
     };
 
     int openFDAndUpdateCache(const std::string& statName, const std::string& kwlId,
+			     const std::string& filename,
                              std::optional<FdWithMutex::LockedFd>* acquiredFd) const
         REQUIRES(mLock);
 
