@@ -269,6 +269,17 @@ static bool isStatFile(const struct dirent* de) {
 }
 
 /*
+ * Copy symbolic link pathname to buf, empty string if kwlId is the pathname
+ */
+static void getSymLinkValue(int kwlStatsFd, const std::string& kwlId, char *buf, size_t bufsize) {
+    ssize_t data_length = readlinkat(kwlStatsFd, kwlId.c_str(), buf, bufsize - 1);
+    buf[bufsize-1] = '\0';
+    if (data_length <= 0 || strncmp(kwlId.c_str(), buf, kwlId.length()) == 0) {
+        buf[0] = '\0';
+    }
+}
+
+/*
  * Creates and returns a kernel wakelock entry with data read from mKernelWakelockStatsFd
  */
 WakeLockInfo WakeLockEntryList::createKernelEntry(const std::string& kwlId) const {
@@ -293,11 +304,7 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(const std::string& kwlId) cons
         openat(mKernelWakelockStatsFd, kwlId.c_str(), O_DIRECTORY | O_CLOEXEC | O_RDONLY))};
     if (wakelockFd < 0) {
         char buf[PATH_MAX];
-        ssize_t data_length =
-            readlinkat(mKernelWakelockStatsFd, kwlId.c_str(), buf, sizeof(buf) - 1);
-        if (data_length <= 0 || strncmp(kwlId.c_str(), buf, kwlId.length()) == 0) {
-            buf[0] = '\0';
-        }
+        getSymLinkValue(mKernelWakelockStatsFd, kwlId, buf, sizeof(buf));
         PLOG(ERROR) << "Error opening kernel wakelock stats for: " << kwlId << " (" << buf << ")";
     }
 
@@ -374,11 +381,14 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(const std::string& kwlId) cons
 
 int WakeLockEntryList::openFDAndUpdateCache(
     const std::string& statName, const std::string& kwlId,
-    std::optional<FdWithMutex::LockedFd>* acquiredFd) const {
+    const std::string& filename, std::optional<FdWithMutex::LockedFd>* acquiredFd) const {
     unique_fd tmpFd(
         TEMP_FAILURE_RETRY(openat(mKernelWakelockStatsFd, statName.c_str(), O_CLOEXEC | O_RDONLY)));
     if (tmpFd < 0) {
-        PLOG(ERROR) << "Error opening " << statName << " for " << kwlId;
+        char buf[PATH_MAX];
+        getSymLinkValue(mKernelWakelockStatsFd, kwlId, buf, sizeof(buf));
+        PLOG(ERROR) << "Error opening kernel wakelock stats for: " << statName
+                    << " (" << buf << "/" << filename << ")";
         return -1;
     }
     int ret = tmpFd;
@@ -448,7 +458,8 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(ScratchSpace* ss, int wakeLock
                     statFd = acquiredFd->get();
                 }
             }
-            if ((statFd = openFDAndUpdateCache(ss->statName, kwlId, &acquiredFd)) < 0) {
+            if ((statFd = openFDAndUpdateCache(
+			    ss->statName, kwlId, field.filename, &acquiredFd)) < 0) {
                 continue;
             }
             // acquiredFd is guaranteed to be set here.
@@ -466,7 +477,8 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(ScratchSpace* ss, int wakeLock
                 }
             }
 
-            if ((statFd = openFDAndUpdateCache(ss->statName, kwlId, &acquiredFd)) < 0) {
+            if ((statFd = openFDAndUpdateCache(
+			    ss->statName, kwlId, field.filename, &acquiredFd)) < 0) {
                 continue;
             }
         }  // mLock is released here
@@ -479,7 +491,8 @@ WakeLockInfo WakeLockEntryList::createKernelEntry(ScratchSpace* ss, int wakeLock
         if (n < 0 && errno == ENODEV) {
             {
                 std::lock_guard<std::mutex> lock(mLock);
-                if ((statFd = openFDAndUpdateCache(ss->statName, kwlId, &acquiredFd)) < 0) {
+                if ((statFd = openFDAndUpdateCache(
+				ss->statName, kwlId, field.filename, &acquiredFd)) < 0) {
                     continue;
                 }
             }
