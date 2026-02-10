@@ -202,7 +202,7 @@ cc_defaults {
         ],
         triage_assignee: "waghpawan@google.com",
     },
-    include_dirs: ["system/hardware/interfaces/suspend/1.0/default/"],
+    include_dirs: ["system/hardware/interfaces/suspend/aidl/default/"],
     cflags: [
         "-DFUZZ_MODE_SUSPEND_SERVICE=1",
     ],
