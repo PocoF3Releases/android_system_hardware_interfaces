@@ -17,7 +17,6 @@
 #include <SuspendProperties.sysprop.h>
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
-#include <android/hidl/manager/1.2/IServiceManager.h>
 #include <android_bpfprogs_flags.h>
 #include <binder/IPCThreadState.h>
 #include <binder/IServiceManager.h>
@@ -25,8 +24,6 @@
 #include <bpf/WaitForProgsLoaded.h>
 #include <cutils/native_handle.h>
 #include <fcntl.h>
-#include <hidl/HidlTransportSupport.h>
-#include <hwbinder/ProcessState.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -35,7 +32,6 @@
 #include "SuspendControlService.h"
 #include "SystemSuspend.h"
 #include "SystemSuspendAidl.h"
-#include "SystemSuspendHidl.h"
 
 using aidl::android::system::suspend::SystemSuspendAidl;
 using android::sp;
@@ -43,14 +39,11 @@ using android::status_t;
 using android::String16;
 using android::base::Socketpair;
 using android::base::unique_fd;
-using android::hardware::configureRpcThreadpool;
-using android::hardware::joinRpcThreadpool;
-using android::system::suspend::V1_0::ISystemSuspend;
+// TODO: remove 'V1_0' namespace that's from HIDL legacy
 using android::system::suspend::V1_0::SleepTimeConfig;
 using android::system::suspend::V1_0::SuspendControlService;
 using android::system::suspend::V1_0::SuspendControlServiceInternal;
 using android::system::suspend::V1_0::SystemSuspend;
-using android::system::suspend::V1_0::SystemSuspendHidl;
 using namespace std::chrono_literals;
 using namespace ::android::sysprop;
 
@@ -172,16 +165,6 @@ int main() {
     CHECK_EQ(aidlStatus, STATUS_OK)
         << "Unable to register system-suspend AIDL service: " << aidlStatus;
 
-    if (android::hidl::manager::V1_2::IServiceManager::Transport::HWBINDER ==
-        android::hardware::defaultServiceManager1_2()->getTransport(SystemSuspendHidl::descriptor,
-                                                                    "default")) {
-        configureRpcThreadpool(1, false /* callerWillJoin */);
-        sp<SystemSuspendHidl> suspendHidl = new SystemSuspendHidl(suspend.get());
-        status_t hidlStatus = suspendHidl->registerAsService();
-        CHECK_EQ(hidlStatus, android::OK)
-            << "Unable to register system-suspend HIDL hal" << hidlStatus;
-    }
-    // join the libbinder threadpool
     android::IPCThreadState::self()->joinThreadPool(true /* isMain */);
     std::abort(); /* unreachable */
 }

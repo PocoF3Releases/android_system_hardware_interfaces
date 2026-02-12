@@ -29,7 +29,6 @@
 #include <ftw.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <hidl/HidlTransportSupport.h>
 #include <suspend_service_flags.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
@@ -58,10 +57,6 @@ using android::base::Socketpair;
 using android::base::unique_fd;
 using android::base::WriteStringToFd;
 using android::base::WriteStringToFile;
-using android::hardware::configureRpcThreadpool;
-using android::hardware::joinRpcThreadpool;
-using android::hardware::Return;
-using android::hardware::Void;
 using android::system::suspend::BnSuspendCallback;
 using android::system::suspend::BnWakelockCallback;
 using android::system::suspend::ISuspendControlService;
@@ -94,51 +89,44 @@ static bool isReadBlocked(int fd, int timeout_ms = 20) {
 class SystemSuspendTest : public ::testing::Test {
    protected:
     static void registerTestService() {
-        std::thread testService([] {
-            configureRpcThreadpool(1, true /* callerWillJoin */);
+        sp<SuspendControlService> suspendControl = new SuspendControlService();
+        auto controlStatus = ::android::defaultServiceManager()->addService(
+            android::String16(kControlServiceName), suspendControl);
+        if (android::OK != controlStatus) {
+            LOG(FATAL) << "Unable to register service " << kControlServiceName << controlStatus;
+        }
 
-            sp<SuspendControlService> suspendControl = new SuspendControlService();
-            auto controlStatus = ::android::defaultServiceManager()->addService(
-                android::String16(kControlServiceName), suspendControl);
-            if (android::OK != controlStatus) {
-                LOG(FATAL) << "Unable to register service " << kControlServiceName << controlStatus;
-            }
+        sp<SuspendControlServiceInternal> suspendControlInternal =
+            new SuspendControlServiceInternal();
+        controlStatus = ::android::defaultServiceManager()->addService(
+            android::String16(kControlServiceInternalName), suspendControlInternal);
+        if (android::OK != controlStatus) {
+            LOG(FATAL) << "Unable to register service " << kControlServiceInternalName
+                       << controlStatus;
+        }
 
-            sp<SuspendControlServiceInternal> suspendControlInternal =
-                new SuspendControlServiceInternal();
-            controlStatus = ::android::defaultServiceManager()->addService(
-                android::String16(kControlServiceInternalName), suspendControlInternal);
-            if (android::OK != controlStatus) {
-                LOG(FATAL) << "Unable to register service " << kControlServiceInternalName
-                           << controlStatus;
-            }
+        // Create non-HW binder threadpool for SuspendControlService.
+        sp<android::ProcessState> ps{android::ProcessState::self()};
+        ps->startThreadPool();
 
-            // Create non-HW binder threadpool for SuspendControlService.
-            sp<android::ProcessState> ps{android::ProcessState::self()};
-            ps->startThreadPool();
+        wakeupReasonsFd =
+            unique_fd(TEMP_FAILURE_RETRY(open(wakeupReasonsFile.path, O_CLOEXEC | O_RDONLY)));
 
-            wakeupReasonsFd =
-                unique_fd(TEMP_FAILURE_RETRY(open(wakeupReasonsFile.path, O_CLOEXEC | O_RDONLY)));
+        suspendTimeFd =
+            unique_fd(TEMP_FAILURE_RETRY(open(suspendTimeFile.path, O_CLOEXEC | O_RDONLY)));
 
-            suspendTimeFd =
-                unique_fd(TEMP_FAILURE_RETRY(open(suspendTimeFile.path, O_CLOEXEC | O_RDONLY)));
+        systemSuspend = new SystemSuspend(
+            std::move(wakeupCountFds[1]), std::move(stateFds[1]),
+            unique_fd(-1) /*suspendStatsFd*/, 1 /* maxNativeStatsEntries */,
+            unique_fd(-1) /* kernelWakelockStatsFd */, std::move(wakeupReasonsFd),
+            std::move(suspendTimeFd), kSleepTimeConfig, suspendControl, suspendControlInternal);
 
-            systemSuspend = new SystemSuspend(
-                std::move(wakeupCountFds[1]), std::move(stateFds[1]),
-                unique_fd(-1) /*suspendStatsFd*/, 1 /* maxNativeStatsEntries */,
-                unique_fd(-1) /* kernelWakelockStatsFd */, std::move(wakeupReasonsFd),
-                std::move(suspendTimeFd), kSleepTimeConfig, suspendControl, suspendControlInternal);
-
-            std::shared_ptr<SystemSuspendAidl> suspendAidl =
-                ndk::SharedRefBase::make<SystemSuspendAidl>(systemSuspend.get());
-            auto aidlBinder = suspendAidl->asBinder();
-            AIBinder_forceDowngradeToLocalStability(aidlBinder.get());
-            auto aidlStatus = AServiceManager_addService(aidlBinder.get(), kServiceName);
-            CHECK(aidlStatus == STATUS_OK);
-
-            joinRpcThreadpool();
-        });
-        testService.detach();
+        std::shared_ptr<SystemSuspendAidl> suspendAidl =
+            ndk::SharedRefBase::make<SystemSuspendAidl>(systemSuspend.get());
+        auto aidlBinder = suspendAidl->asBinder();
+        AIBinder_forceDowngradeToLocalStability(aidlBinder.get());
+        auto aidlStatus = AServiceManager_addService(aidlBinder.get(), kServiceName);
+        CHECK(aidlStatus == STATUS_OK);
     }
 
     static void SetUpTestSuite() {
@@ -2309,7 +2297,6 @@ TEST_P(SystemSuspendDelayTest, SuspendShortDelayTest) {
 }  // namespace android
 
 int main(int argc, char** argv) {
-    android::hardware::details::setTrebleTestingOverride(true);
     ::testing::InitGoogleMock(&argc, argv);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
