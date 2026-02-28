@@ -29,6 +29,7 @@
 #include <android-base/strings.h>
 #include <android/binder_manager.h>
 #include <android/system/suspend/internal/ISuspendControlServiceInternal.h>
+#include <binder/Trace.h>
 #include <fcntl.h>
 #include <suspend_service_flags.h>
 #include <sys/stat.h>

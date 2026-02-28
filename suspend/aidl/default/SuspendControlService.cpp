@@ -20,9 +20,10 @@
 #include <android-base/stringprintf.h>
 #include <bpf/bpf.h>
 #include <bpf_kernelwakelockduration.h>
-#include <suspend_service_flags.h>
+#include <inttypes.h>
 #include <linux/bpf.h>
 #include <signal.h>
+#include <suspend_service_flags.h>
 #include <time.h>
 
 #include <optional>
