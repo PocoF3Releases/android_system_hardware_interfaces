@@ -60,11 +60,17 @@ aidl_interface {
         ndk: {
             apex_available: [
                 "//apex_available:platform",
-                "com.android.uwb",
                 "com.android.bt",
                 "com.android.nfcservices",
             ],
             min_sdk_version: "30",
+        },
+        rust: {
+            apex_available: [
+                "//apex_available:platform",
+                "com.android.uwb",
+            ],
+            min_sdk_version: "33",
         },
     },
     frozen: true,
