@@ -22,19 +22,17 @@ wakeup_paths=()
 unlabeled_paths=()
 
 get_wakeup_paths() {
-    adb shell 'paths=()
-        wakeup_dir=/sys/class/wakeup
+    adb shell 'wakeup_dir=/sys/class/wakeup
         cd $wakeup_dir
         for file in $wakeup_dir/*; do
-            paths+=( $(realpath $file) )
-        done
-        echo "${paths[@]}"'
+            realpath "$file"
+        done'
 }
 
 has_wakeup_attr() { #path
     local _path="$1"
 
-    adb shell "ls -dZ $_path | grep -q $wakeup_attr"
+    adb shell "ls -dZ '$_path' | grep -q $wakeup_attr"
     return $?
 }
 
@@ -50,16 +48,16 @@ check_wakeup_dup() { # wakeup_path
 }
 
 get_unlabeled_wakeup_paths() {
-    for path in ${wakeup_paths[@]}; do
+    for path in "${wakeup_paths[@]}"; do
         wakeup_path="$path"
         has_wakeup_attr "$wakeup_path" && continue
 
         # If there exists a common wakeup parent directory, label that instead
         # of each wakeupN directory
-        dir_path="$(dirname $path)"
-        [ "$(basename $dir_path)" == "wakeup" ] && wakeup_path="$dir_path"
+        dir_path="$(dirname "$path")"
+        [ "$(basename "$dir_path")" == "wakeup" ] && wakeup_path="$dir_path"
 
-        check_wakeup_dup $wakeup_path || unlabeled_paths+=( $wakeup_path )
+        check_wakeup_dup "$wakeup_path" || unlabeled_paths+=( "$wakeup_path" )
     done
 }
 
@@ -102,7 +100,8 @@ if [ "$vendor_api_level" -lt 33 ]; then
 fi
 
 # Test unlabeled sysfs_wakeup nodes
-wakeup_paths+=( $(get_wakeup_paths) )
+IFS=$'\n'
+wakeup_paths+=( $(get_wakeup_paths | tr -d '\r') )
 get_unlabeled_wakeup_paths
 print_missing_labels && fail "Missing sysfs_wakeup labels" \
     || pass "No missing sysfs_wakeup labels"
