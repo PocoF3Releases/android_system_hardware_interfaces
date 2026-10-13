@@ -4,6 +4,7 @@ package {
 
 aidl_interface {
     name: "android.system.vold",
+    recovery_available: true,
     vendor_available: true,
     stability: "vintf",
     host_supported: true,
